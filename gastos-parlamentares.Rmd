@@ -1,0 +1,29 @@
+---
+title: "Análise dos gastos dos deputados brasileiros"
+author: "João Victor Barroso Mafra"
+date: "8 de julho de 2016"
+output: html_document
+---
+
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+theme_set(theme_bw())
+```
+
+```{r}
+# carregando dados
+
+gastos = read.csv("/home/jvmafra/Documentos/ad1/AD1/dados/ano-atual.csv", header = FALSE, comment.char = "#")
+View(gastos)
+```
+
+
+```{r}
+
+deputados.pb = gastos %>% select(5, 6, 15)
+names(deputados.pb) = c("nome", "estado", "categoria")
+deputados.pb = deputados.pb %>% filter(estado == "PB")
+
+
+```
