@@ -14,20 +14,23 @@ theme_set(theme_bw())
 ```{r}
 # carregando dados
 
-ler_gastos2 <- function(arquivo = "/home/joaovbm/Documentos/AD1/dados/ano-atual.csv"){
+ler_gastos <- function(arquivo = "C:/Users/Mafra/Documents/AD1/workspace/AD1/dados/ano-atual.csv"){
+  
+  
   #' Lê um csv criado a partir dos dados de gastos dos deputados da 
   #' Câmara e seta os tipos de colunas mais convenientemente. 
   #' Versão sem readr, para máquinas onde não é possível instalar esse pacote. 
   #' É um pouco mais lenta que a com readr.
   require("dplyr", warn.conflicts = FALSE)
   
-  gastos = read.csv(arquivo, stringsAsFactors = FALSE)
+  gastos = read.csv(arquivo, stringsAsFactors = FALSE,encoding="UTF-8")
   gastos = gastos %>% 
     mutate_each(funs(as.factor), sgPartido, sgUF, txNomeParlamentar, indTipoDocumento)
   return(gastos)
 }
 
-gastos <- ler_gastos2()
+
+gastos <- ler_gastos()
 
 ```
 
@@ -39,7 +42,7 @@ Selecionando apenas dados dos deputados do estado da Paraíba
 
 gastos <- gastos %>% select (1, 5, 6, 8, 15, 23)
 
-names(gastos) <- c("Partido", "Nome", "UF", "Valor solicitado", "Descricao", "Valor liquido")
+names(gastos) <- c("Partido", "Nome", "UF", "Valor_solicitado", "Descricao", "Valor_liquido")
 
 gastos <- gastos %>% filter (UF == "PB")
 
@@ -49,9 +52,43 @@ gastos <- gastos %>% filter (UF == "PB")
 Analisando quais os serviços mais requisitados pelos parlamentares. 
 
 ```{r}
-  # Pelo gráfico de barras gerado, observa-se que os servicos mais requisitados pelos parlamentares sao PASSAGENS AEREAS e COMBUSTIVEIS/LUBRIFICANTES
+  # Pelo gráfico de barras gerado, observa-se que os servicos mais requisitados pelos parlamentares sao PASSAGENS AEREAS e COMBUSTIVEIS/LUBRIFICANTES, mas não necessariamente os maiores valores gastos são com eles
 
   ggplot(gastos) + 
   geom_bar(mapping = aes(x = Descricao)) + coord_flip()
+
+```
+
+
+Observando pontos de centralidade, concentração, extremos
+
+``` {r}
+agrupa_nome = gastos %>% 
+  group_by(Nome) %>% 
+  summarise(total = sum(Valor_liquido))
+
+ggplot(agrupa_nome) + 
+  geom_point(mapping = aes(x = Nome, y = total)) + coord_flip()
+
+View(mean(agrupa_nome$total)) # Em media, quanto os deputados gastam?
+
+ggplot(agrupa_nome) + 
+  geom_histogram(mapping = aes(x = Descricao)) + coord_flip()
+
+maior_valor = agrupa_nome %>% filter(total == max(total))
+
+menor_valor = agrupa_nome %>% filter(total == min(total))
+
+View(maior_valor) #deputado que mais gastou
+View(menor_valor) #deputado que menos gastou
+
+
+View(mean(gastos$Valor_liquido)) #O que cada deputado gasta em média para cada servico solicitado
+
+
+
+
+
+
 
 ```
