@@ -1,6 +1,6 @@
 ---
-title: "AnÃ¡lise dos gastos dos deputados brasileiros"
-author: "JoÃ£o Victor Barroso Mafra"
+title: "Análise dos gastos dos deputados paraibanos"
+author: "João Victor Barroso Mafra"
 date: "8 de julho de 2016"
 output: html_document
 ---
@@ -8,22 +8,24 @@ output: html_document
 ```{r}
 library(dplyr, warn.conflicts = FALSE)
 library(ggplot2)
+library(knitr)
 theme_set(theme_bw())
 ```
 
-```{r}
-# carregando dados
+Aqui os dados são carregadas e filtrados para considerar apenas deputados do estado da Paraíba. Além disso, apenas algumas variáveis serão levadas em conta: PARTIDO (Partido), NOME DO DEPUTADO (Nome), ESTADO(UF), TIPO DE DESPESA (Descricao) e VALOR LÍQUIDO (Valor_liquido), ou seja, aquilo que foi de fato debitado da conta do deputado.
 
-ler_gastos <- function(arquivo = "C:/Users/Mafra/Documents/AD1/workspace/AD1/dados/ano-atual.csv"){
+```{r}
+
+ler_gastos <- function(arquivo = "dados/ano-atual.csv"){
   
   
-  #' LÃª um csv criado a partir dos dados de gastos dos deputados da 
-  #' CÃ¢mara e seta os tipos de colunas mais convenientemente. 
-  #' VersÃ£o sem readr, para mÃ¡quinas onde nÃ£o Ã© possÃ­vel instalar esse pacote. 
-  #' Ã‰ um pouco mais lenta que a com readr.
+  #' Lê um csv criado a partir dos dados de gastos dos deputados da 
+  #' Câmara e seta os tipos de colunas mais convenientemente. 
+  #' Versão sem readr, para máquinas onde não é possível instalar esse pacote. 
+  #' É um pouco mais lenta que a com readr.
   require("dplyr", warn.conflicts = FALSE)
   
-  gastos = read.csv(arquivo, stringsAsFactors = FALSE,encoding="UTF-8")
+  gastos = read.csv(arquivo, stringsAsFactors = FALSE, encoding='UTF-8')
   gastos = gastos %>% 
     mutate_each(funs(as.factor), sgPartido, sgUF, txNomeParlamentar, indTipoDocumento)
   return(gastos)
@@ -32,63 +34,105 @@ ler_gastos <- function(arquivo = "C:/Users/Mafra/Documents/AD1/workspace/AD1/dad
 
 gastos <- ler_gastos()
 
-```
+gastos <- gastos %>% select (1, 5, 6, 15, 23)
 
-Selecionando apenas dados dos deputados do estado da ParaÃ­ba
+names(gastos) <- c("Partido", "Nome", "UF", "Descricao", "Valor_liquido")
 
-```{r}
-
-# Foram observados especialmente os atributos Partido, Nome, Valor Solicitado, Descricao e o Valor Liquido, ou seja, o que de fato foi recebido pelo deputado.
-
-gastos <- gastos %>% select (1, 5, 6, 8, 15, 23)
-
-names(gastos) <- c("Partido", "Nome", "UF", "Valor_solicitado", "Descricao", "Valor_liquido")
-
-gastos <- gastos %>% filter (UF == "PB")
-
+gastos_pb <- gastos %>% filter (UF == "PB")
 
 ```
 
-Analisando quais os serviÃ§os mais requisitados pelos parlamentares. 
+## Centralidade, extremos, concentração e simetria.
+
+Aqui é analisado o resumo de todos gastos (valor líquido) feitos pelos deputados, ainda não categorizados (Podemos ter gastos diferentes para uma mesma categoria como TELEFONIA, por exemplo). O principal objetivo dessa análise foi verificar algo um tanto quanto estranho, que é a existência de observações cujo o valor da despesa é negativo. Isso acontece pois para situações de emissão de bilhetes aéreos, significando que o referido bilhete é um bilhete de compensação, pois compensa um outro bilhete emitido e não utilizado pelo deputado.
 
 ```{r}
-  # Pelo grÃ¡fico de barras gerado, observa-se que os servicos mais requisitados pelos parlamentares sao PASSAGENS AEREAS e COMBUSTIVEIS/LUBRIFICANTES, mas nÃ£o necessariamente os maiores valores gastos sÃ£o com eles
 
-  ggplot(gastos) + 
+summary(gastos_pb $ Valor_liquido)
+
+
+```
+
+
+Agora, vamos focar em observar os gastos de cada deputado no geral, somando todos os seus valores líquidos. Inicialmente, observando o resumo, temos que o deputado que mais gastou durante o período observado gastou aproximadamente R$ 24 2700, enquanto o mínimo foi aproximadamente R$ 41 880. 25% dos deputados gastaram aproximadamente R$ 124 700 ou menos e 75% gastaram R$ 206 100 ou menos. 
+
+```{r}
+agrupa_nome = gastos_pb %>% 
+  group_by(Nome) %>% 
+  summarise(total_gasto = sum(Valor_liquido))
+
+summary(agrupa_nome$total_gasto)
+```
+
+Gerando um gráfico de barras para observar melhor tais extremos. Pedro Cunha Lima é o deputado que menos gasta e Rômulo Gouveia o deputado que mais gasta. Um ponto surpreendente notável é a diferença exorbitante de gastos de Pedro para os demais deputados. O mais indicado para um analista de dados seria pesquisar algo sobre o ponto estranho a fim de encontrar uma razao. Na verdade, Pedro Cunha Lima se afastou do cargo no fim do ano passado para terminar o seu mestrado, o que explica esse pequeno valor gasto. Seu substituto, Marcondes Gadelha, inclusive, é o segundo que menos gastou.
+
+```{r}
+ggplot(agrupa_nome, aes(x= Nome, y = total_gasto)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.background=element_blank())
+```
+
+
+Agora, temos um gráfico de dispersão com a distribuiçao dos deputados e seus gastos. Os parlamentares estão bem espalhados pelo gráfico, mas podemos notar que o maior ponto de concentração é entre os valores 150 000 e 200 000, onde temos cinco deputados.
+
+```{r}
+ggplot(agrupa_nome, aes(x = Nome, y = total_gasto)) + geom_point() + coord_flip() 
+
+ggplot(agrupa_nome, mapping = aes(x = total_gasto, y = total_gasto)) +  geom_boxplot() + geom_point(aes(color=factor(Nome)),               position=position_dodge(width=0.75))
+
+```
+
+VOLTANDO AO RESUMO ANTERIOR:
+Os deputados gastam em média, 162900, e a mediana é aproximadamente 168400, valores não tão distantes quando leva-se em conta a ordem de grandeza dos valores envolvidos. O grafico de pontos seguir mostra os gastos dos deputados comparados a média (vermelho) e mediana azu)
+
+```{r}
+
+```
+
+Analisando agora quais os serviços mais requisitados pelos parlamentares. Pelo gráfico de barras gerado, observa-se que os serviços mais requisitados pelos parlamentares são EMISSÃO DE BILHETES AÉREOS e COMBUSTIVEIS/LUBRIFICANTES, mas não necessariamente os maiores valores gastos são com eles. Essa análise será feita mais a frente
+
+```{r}
+
+  ggplot(gastos_pb) + 
   geom_bar(mapping = aes(x = Descricao)) + coord_flip()
 
 ```
 
+## COM O QUE NOSSOS DEPUTADOS MAIS GASTAM?
 
-Observando pontos de centralidade, concentraÃ§Ã£o, extremos
+Vamos fazer um agrupamento agora por tipo de despesa e somar os seus respectivos valores líquidos a fim de responder em que os nossos deputados mais gastam recursos com sua cota. Com sobras, a despesa com Divulgação da atividade parlamentar é a vencedora. Em segundo lugar, temos a Emissão de Bilhete Aéreo. Despesas com serviço de táxi, pedágio e estacionamento vem em último lugar. Ao todo, foram gastos apenas 658.98 nesse tipo de despesa.
 
-``` {r}
-agrupa_nome = gastos %>% 
-  group_by(Nome) %>% 
-  summarise(total = sum(Valor_liquido))
+```{r}
+agrupa_categoria = gastos_pb %>% 
+  group_by(Descricao) %>% 
+  summarise(total_gasto = sum(Valor_liquido))
 
-ggplot(agrupa_nome) + 
-  geom_point(mapping = aes(x = Nome, y = total)) + coord_flip()
+ggplot(agrupa_categoria, aes(x= Descricao, y = total_gasto)) + geom_bar(stat = "identity") + coord_flip() + ylab("Total gasto") + xlab("Tipo de despesa")
 
-View(mean(agrupa_nome$total)) # Em media, quanto os deputados gastam?
+```
 
-ggplot(agrupa_nome) + 
-  geom_histogram(mapping = aes(x = Descricao)) + coord_flip()
+## QUAIS OS TIPOS DE DESPESAS QUE MAIS VARIAM?
 
-maior_valor = agrupa_nome %>% filter(total == max(total))
+As despesas com Divulgação da atividade parlamentar são as que mais variam, possuindo um desvio padrão aproximado de 5026. Consultorias, Pesquisas e Trabalhos Técnicos é segundo tipo de despesa que mais varia. A emissão de bilhetes aéreos, que é o serviço mais solicitado e o segundo com o qual os deputados mais gastam, apresenta pouca variação.
 
-menor_valor = agrupa_nome %>% filter(total == min(total))
+```{r}
+agrupa_categoria = gastos_pb %>% 
+  group_by(Descricao) %>% 
+  summarise(desvio_padrao = sd(Valor_liquido))
 
-View(maior_valor) #deputado que mais gastou
-View(menor_valor) #deputado que menos gastou
-
-
-View(mean(gastos$Valor_liquido)) #O que cada deputado gasta em mÃ©dia para cada servico solicitado
-
-
-
-
-
+ggplot(agrupa_categoria, aes(x= Descricao, y = desvio_padrao)) + geom_bar(stat = "identity") + coord_flip() + ylab("Desvio") + xlab("Tipo de despesa")
 
 
 ```
+
+Observando o tipo de despesa com maior variação de despesas: DIVULGAÇÃO DA ATIVIDADE PARLAMENTAR. Pode-se notar que temos uma enorme variação de valores nessa categoria realmente. O valor mínimo observado em uma despesa foi de "apenas" R$ 334,30, e o maior valor chega a ultrapassar os R$ 41 000. O deputado Benjamin Maranhão, por exemplo, detentor da maior despesa da categoria citado agora a pouco, possui despesas do mesmo tipo que estão na casa dos R$ 500.
+
+```{r}
+
+atividade_parlamentar <- gastos_pb %>% filter(Descricao == "DIVULGAÇÃO DA ATIVIDADE PARLAMENTAR.")
+
+summary(atividade_parlamentar$Valor_liquido)
+
+ggplot(atividade_parlamentar, aes(x = Nome, y = atividade_parlamentar$Valor_liquido)) + geom_point() + coord_flip()  + ylab("Valor gasto") + xlab("Deputado")
+
+
+```
+
