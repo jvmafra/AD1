@@ -1,0 +1,44 @@
+1. Qual o estado que mais gasta proporcionalmente? Nesse caso, não basta levar em conta o total gasto por cada um, já que cada estado possui cotas diferentes. 
+
+	- Resposta esperada: Já que leva-se em conta a cota de estado para fazer a proporção, essa resposta fica como indefinida até que a análise seja feita de fato.
+
+
+
+
+2. Com que tipo de despesa cada estado mais gasta? Existe algo fora do padrão em algum estado que pode ser explicado por exemplo por questões geográficas?
+
+
+	- Resposta esperada: Provavelmente os deputados dos estados do Norte gastam mais com passagens aéreas, enquanto os deputados do DF devem gastar menos.
+
+
+
+3. Com que fornecedor cada partido ou estado está mais relacionado? Existe algum ponto que chama atenção? Uma mesma empresa fornece para vários partidos ou vários estados?
+
+
+	- Resposta esperada: Fornecedoras conhecidas, como companhias aéreas e de telefonia, devem aparecer muito independente do partido ou estado
+
+
+
+4. Há alguma correlação entre o partido e o tipo de despesa? Deputados de um partido gastam mais com uma coisa, enquanto os outro partido gastam mais com outra?
+
+	- Resposta esperada: Creio que não. Podem existir observações estranhas, mas todos os partidos (seus deputados, no caso) devem seguir a tendência geral e gastar mais com divulgação da atividade parlamentar
+
+
+
+5. Existe algum mês ou semana no(a) qual os deputados gastaram muito mais ou muito menos que o normal? Teria alguma razão?
+
+	
+	- Resposta esperada: Acredito que não existe nenhuma variação muito grande quanto a isso
+
+
+
+6. Proporcionalmente, os gastos dos deputados de um certo partido em um estado se aproxima do gasto dos deputados do mesmo partido em outro?
+
+
+	- Resposta esperada: Não. Mesmo fazendo a proporção levando em conta a cota por estado, creio que não existe uma correlação muito forten esse aspecto.
+
+
+
+
+
+
