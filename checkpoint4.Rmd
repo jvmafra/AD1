@@ -1,6 +1,6 @@
 ---
-title: "Análise dos gastos dos deputados"
-author: "João Victor Barroso Mafra"
+title: "An?lise dos gastos dos deputados"
+author: "Jo?o Victor Barroso Mafra"
 date: "17 de julho de 2016"
 output: html_document
 ---
@@ -38,9 +38,9 @@ bancada <- ler_gastos("dados/bancada.csv")
 ```
 
 
-## Como são as distribuições dos gastos por partido?
+## Como s?o as distribui??es dos gastos por partido?
 
-Aqui estamos interessados em saber como se comportam os gastos analisando cada partido. Partidos maiores são realmente os que mais gastam? Há uma diferença muita grande entre gastos de cada partido? Interessante perceber que aqui, faremos uma média do gasto de todos deputados dos principais partidos, com o objetivo de manter a proporção. Analisando dados brutos, temos que o PMDB é o partido que mais gasta pelo óbvio motivo de ter mais deputados na bancada
+Aqui estamos interessados em saber como se comportam os gastos analisando cada partido. Partidos maiores s?o realmente os que mais gastam? H? uma diferen?a muita grande entre gastos de cada partido? Interessante perceber que aqui, faremos uma m?dia do gasto de todos deputados dos principais partidos, com o objetivo de manter a propor??o. Analisando dados brutos, temos que o PMDB ? o partido que mais gasta pelo ?bvio motivo de ter mais deputados na bancada
 
 ```{r}
 #agrupa_estado <- gastos %>% group_by(UF, Cota) %>% summarise(media = sum(Valor_liquido))
@@ -51,7 +51,14 @@ agrupa_partido <- gastos %>% group_by(Partido) %>% summarise(total = sum(Valor_l
 partidos <- merge(agrupa_partido, bancada)
 
 
-ggplot(partidos, aes(x= Partido, y = total/Numero), colour = Partido) + geom_bar(stat = "identity") + coord_flip() + ylab("Média de gasto por deputado") + xlab("Partido")
+ggplot(partidos, aes(x= Partido, y = total/Numero)) + geom_bar(stat = "identity") + coord_flip() + ylab("M?dia de gasto por deputado") + xlab("Partido")
 
+ggplot(partidos, aes(x = Partido, y = total/Numero)) + geom_point() + coord_flip()
+
+agrupa_nome <- gastos %>% group_by(Nome, Partido) %>% summarise(total = sum(Valor_liquido))
+
+ggplot(agrupa_nome, aes(x = Partido, y = total)) + geom_point() + coord_flip()
+#Nova pergunta: Analisar fornecedores dos gastos com atividade parlamentar
+# Analisar deputados que mais gastam nas coisas menos comuns
 
 ```
