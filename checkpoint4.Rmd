@@ -1,6 +1,5 @@
 ---
-title: "An?lise dos gastos dos deputados"
-author: "Jo?o Victor Barroso Mafra"
+title: "Análise dos gastos dos deputados"
 date: "17 de julho de 2016"
 output: html_document
 ---
@@ -16,7 +15,7 @@ theme_set(theme_bw())
 
 ```{r}
 
-#Carregando os arquivos dos gastos e das cotas por estado
+#Carregando os arquivos dos gastos e do numero de deputados ativos por partido
 
 ler_gastos <- function(arquivo){
   require("dplyr", warn.conflicts = FALSE)
@@ -26,39 +25,145 @@ ler_gastos <- function(arquivo){
 }
 
 gastos <- ler_gastos("dados/ano-atual.csv")
+
 gastos = gastos %>% 
     mutate_each(funs(as.factor), sgPartido, sgUF, txNomeParlamentar, indTipoDocumento)
 
 
-gastos <- gastos %>% select (1, 5, 6, 15, 23)
+gastos <- gastos %>% select (1, 5, 6, 15,18, 23)
 
-names(gastos) <- c("Partido", "Nome", "UF", "Tipo_despesa", "Valor_liquido")
+names(gastos) <- c("Partido", "Nome", "UF", "Tipo_despesa","Fornecedor", "Valor_liquido")
+
 
 bancada <- ler_gastos("dados/bancada.csv")
+
 ```
 
 
-## Como s?o as distribui??es dos gastos por partido?
+## Como estão distribuídos os gastos por partido?
 
-Aqui estamos interessados em saber como se comportam os gastos analisando cada partido. Partidos maiores s?o realmente os que mais gastam? H? uma diferen?a muita grande entre gastos de cada partido? Interessante perceber que aqui, faremos uma m?dia do gasto de todos deputados dos principais partidos, com o objetivo de manter a propor??o. Analisando dados brutos, temos que o PMDB ? o partido que mais gasta pelo ?bvio motivo de ter mais deputados na bancada
+Aqui estamos interessados em saber como se comportam os gastos analisando cada partido. Partidos maiores são realmente os que mais gastam? Há uma diferença muita grande entre gastos de cada partido? Interessante perceber que aqui, faremos uma média do gasto de todos deputados de cada partido, com o objetivo de manter a proporção. Analisando dados brutos, temos que o PMDB o partido que mais gasta pelo motivo de ter mais deputados na bancada. Antes de observar os gastos proporcionalmente, vamos ter uma noção geral dos dados.
+
+O partido que mais gastou no intervalo observado foi o PMDB, com aproximadamente R$ 11,5 milhões.
+O partido que menos gastou foi o PRTB, com aproximadamente R$ 2 mil. O primeiro possui o maior número de deputados na bancada, enquanto o segundo possui o menor número (apenas 1 deputado). Até aqui os dados não mostram nada de extraordinário.
+
 
 ```{r}
-#agrupa_estado <- gastos %>% group_by(UF, Cota) %>% summarise(media = sum(Valor_liquido))
 
 agrupa_partido <- gastos %>% group_by(Partido) %>% summarise(total = sum(Valor_liquido))
 
+summary(agrupa_partido$total)
 
+```
+
+
+Agora dividindo o total de gastos de um partido pelo número de deputados na bancada podemos ter uma noção melhor de qual partido mais gasta proporcionalmente, como citado anteriormente. Como pode-se observar o PRB é o que apresenta maior média. Foram aproximadamente R$ 4,2 milhões gastos no total, com 22 deputados em exercício, resultando em uma média de R$ 194 mil por deputado. Em segundo vem o PCdoB, com uma média de R$ 181 mil por deputado. Os valores observados não estão tão distantes, com exceção para o PRTB, que apresentou média de apenas R$ 2045 com seu único deputado em exercício. A explicação é simples: O jovem Val Amélio, de Alagoas, tomou posse apenas no fim de maio, após o deputado Cicero Almeida (PMDB), ter tirado licença médica.
+
+
+```{r}
 partidos <- merge(agrupa_partido, bancada)
 
 
-ggplot(partidos, aes(x= Partido, y = total/Numero)) + geom_bar(stat = "identity") + coord_flip() + ylab("M?dia de gasto por deputado") + xlab("Partido")
-
-ggplot(partidos, aes(x = Partido, y = total/Numero)) + geom_point() + coord_flip()
-
-agrupa_nome <- gastos %>% group_by(Nome, Partido) %>% summarise(total = sum(Valor_liquido))
-
-ggplot(agrupa_nome, aes(x = Partido, y = total)) + geom_point() + coord_flip()
-#Nova pergunta: Analisar fornecedores dos gastos com atividade parlamentar
-# Analisar deputados que mais gastam nas coisas menos comuns
+ggplot(partidos, aes(x= Partido, y = total/Numero, fill = Partido)) + geom_bar(stat = "identity") + coord_flip() + ylab("Média do gasto por deputado do partido (em reais)") + xlab("Partido") + ggtitle("Média dos gastos dos deputados por partido")
 
 ```
+
+
+Haveria alguma razão especial para o PRB estar na primeira posição? Algum deputado do partido apresentou um gasto excessivo aumentando a média de todo partido? O gráfico abaixo ajuda a responder perguntas com essas.
+
+Podemos observar que os deputados do referido partido concentram-se realmente nas proximidades das casa dos R$ 200 mil. Apenas um deputado está bem abaixo dos demais gastando abaixo de R$ 100 mil. Apesar do PRB apresentar a maior média, O PP que possui o deputado que mais gastou no geral.
+
+
+```{r}
+agrupa_nome <- gastos %>% group_by(Nome, Partido) %>% summarise(total = sum(Valor_liquido))
+
+ggplot(agrupa_nome, aes(x = Partido, y = total/1e3)) + geom_point(colour="slateblue4") + coord_flip() + xlab("Partido") + ylab("Valor gasto (em mil reais)") + ggtitle("Distribuição dos gastos dos deputados por partido")
+
+```
+
+
+
+Será que essa média maior por parte dos deputados do PRB teria algo a ver com a origem dos seus deputados? Abaixo, foi gerado um gráfico de barras que mostra a distribuição dos deputados do partido nos estados brasileiros. Ele possui representantes dos 4 estados que apresentam maior cota disponível para seus deputados (RR, AC, RO e AM). Em compensação, a maioria dos seus representantes (7) são do estado de SP, que apresenta apenas a 23ª maior cota (R$ 37 mil por deputado) dentre os 27 estados da união. 
+
+
+
+```{r}
+partidos.prb <- gastos %>% filter (Partido == "PRB") %>% group_by(Nome, UF) %>% summarise(total = sum(Valor_liquido))
+
+ggplot(partidos.prb) + geom_bar(aes(x= UF, fill = UF)) + coord_flip() + xlab("Estado") + ylab("Numero de deputados") + ggtitle("Deputados do PRB por estado")
+
+```
+
+
+
+## Entre tipos de despesas menos comuns, como estão distribuídos os deputados paraibanos?
+
+Já era conhecido que o maior gasto por parte dos deputados paraibanos (e do Brasil) são com divulgação da atividade parlamentar. Olhando agora para parte de baixo, quais são os tipos menos comuns e como estão distribuídos os deputados paraibanos em relação a esses tipos de despesas mais raras? Será que algum deputado gasta muito em algum serviço pouco usual? O gráfico abaixo retoma os tipos de despesas com as quais os parlamentares mais gastam e consequentemente também traz as despesas menos comuns. Podemos citar algumas como Serviço de Segurança prestado por empresa especializada, Serviço de táxi e estacionamento, Assinatura de publicações e Hospedagem.
+
+
+
+```{r}
+gastos_pb <- gastos %>% filter (UF == "PB")
+
+agrupa_tipo <- gastos_pb %>% group_by(Tipo_despesa) %>% summarise(total = sum(Valor_liquido))
+
+ggplot(agrupa_tipo, aes(x= Tipo_despesa, y = total)) + geom_bar(stat = "identity") + coord_flip() + ylab("Total gasto") + xlab("Tipo de despesa")
+
+```
+
+
+Observando dois tipos de despesas pouco comuns, temos por exemplo os gastos com segurança prestada por empresa especializada e gastos com hospedagens. Apenas o deputado Rômulo Gouveia apresenta o primeiro tipo de despesa. Foram 4 despesas (3 com o mesmo valor) com a empresa Alves & Almeida, na verdade, A Campinense Segurança Eletrônica, de Campina Grande.
+
+
+```{r fig.width=10, fig.height=3}
+gastos.seguranca <- gastos_pb %>% filter (Tipo_despesa == "SERVIÇO DE SEGURANÇA PRESTADO POR EMPRESA ESPECIALIZADA.")
+
+ggplot(gastos.seguranca) + geom_point(aes(x = Nome, y = gastos.seguranca$Valor_liquido)) + coord_flip() + xlab("Deputado") + ylab("Valor gasto (Em reais)")
+
+```
+
+
+Um gasto que poderia ser mais comum seria o de hospedagem, já que todos os deputados são paraibanos e dão expediente em Brasília. Apesar disso, apenas alguns gastam sua cota com isso. Pelo nome da despesa, esse tipo de gasto não é liberado para os deputados do DF, levando a entender que os deputados de outros estados, em tese, deveriam gastar essa cota para se hospederem em Brasília, seu local de trabalho, ou em outros estados a trabalho. O gráfico mostra os parlamentares paraibanos relacionados com os fornecedores desse tipo de despesa.
+
+Nenhum dos fornecedores mostrados são do DF. Além disso, em apenas um hotel ocorreu de dois parlamentares se hospederem. Rômulo Gouveia e Damião Feliciano participavam da Plenária do Parnasul no Uruguai.
+
+
+```{r}
+gastos.hospedagem <- gastos_pb %>% filter (Tipo_despesa == "HOSPEDAGEM ,EXCETO DO PARLAMENTAR NO DISTRITO FEDERAL.")
+
+
+ggplot(gastos.hospedagem) + geom_point(size = 2, aes(x = Fornecedor, y = Valor_liquido, colour = Nome)) + coord_flip() + xlab("Fornecedor") + ylab("Valor gasto (em reais)") + ggtitle("Gastos dos deputados paraibanos com hospedagem")
+
+```
+
+
+## Algum fornecedor se destaca no tipo de despesa com o qual os deputados mais gastam?
+
+Agora olhando de fato para o maior gasto dos deputados paraibanos e brasileiros: Divulgação da atividade parlamentar. O gráfico mostra a distribuição dos deputados em relação aos forncedores desse tipo de despesa e o valor gasto. Como temos bem mais observações fica mais fácil notar alguns pontos interessantes, como por exemplo, a concentração de deputados no fornecedor Josely Fernanda do Nascimento. O CNPJ da empresa é originalmente de Brasília/DF, mas seu nome aparece em uma nomeação da prefeitura municipal de Santa Rita/PB em abril do ano passado.
+
+
+O maior gasto foi de Beijamin Maranhão (aproximadamente R$ 42 mil) para uma gráfica de João Pessoa.
+
+
+
+``` {r fig.width=10, fig.height=10}
+
+
+gastos.atividade <- gastos_pb %>% filter(Tipo_despesa == "DIVULGAÇÃO DA ATIVIDADE PARLAMENTAR.")
+
+ggplot(gastos.atividade) + geom_point(size = 2, aes(x = Fornecedor, y = Valor_liquido, colour = Nome)) + coord_flip() + xlab("Fornecedor") + ylab("Valor gasto (em reais)") + ggtitle("Gastos dos deputados paraibanos com divulgação da atividade")
+
+
+
+
+```
+
+
+
+
+## Comentários sobre os métodos utilizados
+
+O que achei melhor: O uso de gráfico de pontos dão uma boa noção de concentração das observações, principalmente quando a amostra tem um grande número de deputados envolvidos. Julgo os métodos utilizados como adequados para responder as perguntas sugeridas.
+
+
+O que poderia melhorar: Talvez o uso de mais tipos de gráficos, como por exemplo o boxplot.
