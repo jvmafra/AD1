@@ -58,8 +58,8 @@ ggplot(agrupa_nome, aes(x = reorder(Nome, total_gasto),
   geom_text(aes(label = sprintf("R$ %i",as.integer(total_gasto))), hjust=1, vjust=1, fontface = "bold", colour = "white") +
   xlab("Nome do deputado") + 
   ylab("Total Gasto") + coord_flip() + 
-  geom_point(data = agrupa_atividade, aes(x = Nome, y = Divulgacao, size = Divulgacao), colour = "white", show.legend = TRUE, shape = 15) +
+  geom_point(data = agrupa_atividade, aes(x = Nome, y = Divulgacao, size = Divulgacao), colour = "black", show.legend = TRUE, shape = 21) +
   
-  geom_point(data = gastos_pb, aes(x = Nome, y = Valor), colour = "white", show.legend = FALSE)
+  geom_point(data = gastos_pb, aes(x = Nome, y = Valor), colour = "black", show.legend = FALSE)
 
 ```
