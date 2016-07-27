@@ -13,7 +13,7 @@ theme_set(theme_bw())
 ```
 
 ```{r}
-ler_gastos <- function(arquivo = "/home/joaovbm/Documentos/AD1/dados/ano-atual.csv"){
+ler_gastos <- function(arquivo = "dados/ano-atual.csv"){
   
   
   #' L? um csv criado a partir dos dados de gastos dos deputados da 
@@ -40,7 +40,10 @@ gastos_pb <- gastos %>% filter (UF == "PB")
 
 
 
-```{r}
+```{r fig.width=10, fig.height=5}
+agrupa_atividade = gastos_pb %>% filter(Tipo == "DIVULGAÇÃO DA ATIVIDADE PARLAMENTAR.") %>% group_by(Nome, Partido) %>% summarise(Divulgacao = sum(Valor))
+
+
 agrupa_nome = gastos_pb %>% 
   group_by(Nome, Partido) %>% 
   summarise(total_gasto = sum(Valor))
@@ -49,9 +52,14 @@ ggplot(agrupa_nome, aes(x = reorder(Nome, total_gasto),
                         y = total_gasto,  
                         fill = Partido)) + 
   geom_bar(stat = "summary", fun.y = "mean") + 
-  geom_text(aes(label = as.integer(total_gasto))) +
+  
+  scale_fill_manual(values = c("chartreuse4", "azure4", "cadetblue3", "darkgoldenrod3", "darkorchid", "darkred", "deeppink2", "orange", "red", "lawngreen", "burlywood1")) +
+  
+  geom_text(aes(label = sprintf("R$ %i",as.integer(total_gasto))), hjust=1, vjust=1, fontface = "bold", colour = "white") +
   xlab("Nome do deputado") + 
   ylab("Total Gasto") + coord_flip() + 
-  geom_point(data = gastos_pb, aes(x = Nome, y = Valor), colour = "red")
+  geom_point(data = agrupa_atividade, aes(x = Nome, y = Divulgacao, size = Divulgacao), colour = "white", show.legend = TRUE, shape = 15) +
+  
+  geom_point(data = gastos_pb, aes(x = Nome, y = Valor), colour = "white", show.legend = FALSE)
 
 ```
