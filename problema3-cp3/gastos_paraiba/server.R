@@ -24,6 +24,9 @@ gastos <- gastos %>% select (1,2, 5, 6, 15, 23, 30)
 names(gastos) <- c("Partido", "Mes", "Nome", "UF", "Tipo", "Valor", "Ideologia_Partidaria")
 
 gastos_pb <- gastos %>% filter (UF == "PB")
+gastos_pb <- gastos_pb %>% filter (Mes != 7)
+gastos_pb <- gastos_pb %>% filter (Mes != 6)
+
 
 meses <- list("Janeiro" = 1,"Fevereiro" = 2, "Março" = 3, "Abril" = 4, "Maio" = 5)
 
@@ -31,25 +34,41 @@ meses <- list("Janeiro" = 1,"Fevereiro" = 2, "Março" = 3, "Abril" = 4, "Maio" =
 shinyServer(function(input, output) {
   
   output$plotMes <- renderPlot({
-    if (input$teste != "Todos"){
-      gastos_pb <- gastos_pb %>% filter (Mes == meses[input$teste])
-      escala <- c(0, 70000)
+    if (input$deputado == "TODOS"){
+      if (input$mes != "Todos"){
+        gastos_pb <- gastos_pb %>% filter (Mes == meses[input$mes])
+        escala <- c(0, 70000)
+        nome.mes <- input$mes
+      } else {
+        escala <- c(0, 250000)
+        nome.mes <- "Janeiro a Maio"
+      }
+      
+      agrupa_nome <- gastos_pb %>% 
+        group_by(Nome, Ideologia_Partidaria, Partido) %>% 
+        summarise(total_gasto = sum(Valor))
+      
+      ggplot(agrupa_nome, aes(x = reorder(sprintf("%s - %s", Nome, Partido), total_gasto),  
+                              y = total_gasto,  
+                              fill = Ideologia_Partidaria)) + 
+        geom_bar(stat = "summary", fun.y = "mean") + 
+        scale_y_continuous(limits = escala) +
+        coord_flip() + 
+        xlab("Nome do deputado") +
+        ylab(sprintf("Valor gasto (%s)", nome.mes)) +
+        labs(fill = "Ideologia partidária")
+      
     } else {
-      escala <- c(0, 250000)
+      gastos_deputado <- gastos_pb %>% filter(Nome == input$deputado)
+      agrupa_mes <- gastos_deputado %>% group_by(Mes) %>% summarise(valor = sum(Valor))
+      
+      ggplot(agrupa_mes) + ggtitle(sprintf("GASTOS (JANEIRO A MAIO) DE %s", input$deputado)) +
+        geom_point(aes(x = Mes, y = valor), colour = "deepskyblue3", size = 4) +
+        scale_x_continuous(limits = c(1,5)) +
+        scale_y_continuous(limits = c(0, 70000))
+
     }
     
-    agrupa_nome <- gastos_pb %>% 
-      group_by(Nome, Ideologia_Partidaria, Partido) %>% 
-      summarise(total_gasto = sum(Valor))
-    
-    ggplot(agrupa_nome, aes(x = reorder(sprintf("%s - %s", Nome, Partido), total_gasto),  
-                            y = total_gasto,  
-                            fill = Ideologia_Partidaria)) + 
-      geom_bar(stat = "summary", fun.y = "mean") + 
-      scale_y_continuous(limits = escala) +
-      coord_flip() + 
-      xlab("Nome do deputado") +
-      ylab("Valor gasto")
     
   })
   
