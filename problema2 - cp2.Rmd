@@ -1,6 +1,5 @@
 ---
 title: "Checkpoint 2 - Problema 2"
-author: "Jo?o Victor Barroso Mafra"
 date: "26 de julho de 2016"
 output:
   html_document:
@@ -49,7 +48,7 @@ Alguns subgastos também apresentam valores negativos. Isso acontece para situa�
 Como estudado anteriormente, o tipo de despesa com qual os deputados mais gastam é a divulgação de atividade parlamentar. Nesse gráfico, a bolinhas pretas não preenchidas mostram o total gasto pelo deputado com esse tipo de serviço. Serviu para mostrar um certo padrão, que na maioria dos casos metade ou mais do gasto total dos parlamentares provém desse tipo de despesa, e também para mostrar pontos estranhos, como o baixo valor gasto de Luiz Couto.
 
 
-```{r fig.width=12, fig.height=8}
+```{r fig.width=10, fig.height=6}
 
 
   
@@ -80,7 +79,7 @@ ggplot(agrupa_nome, aes(x = reorder(Nome, total_gasto),
 Entretanto, ainda temos um ponto estranho no gráfico anterior, que foi o pequeno valor gasto por Pedro Cunha Lima. Na verdade, Pedro tirou licença no fim do ano passado e assumiu Marcondes Gadelha, seu suplente. O fato dos dois serem os que menos gastaram pode ser explicado por tal fato. A fim de garantir uma comparação mais justa, os gastos totais e com divulgação da atividade parlamentar dos dois deputados foram agrupados em um só. Nessa perspectiva, o deputado que menos gasta passa a ser Luiz Couto.
 
 
-```{r fig.width=12, fig.height=8}
+```{r fig.width=10, fig.height=6}
 agrupa_atividade = gastos_pb %>% filter(Tipo == "DIVULGAÇÃO DA ATIVIDADE PARLAMENTAR.") %>% group_by(Nome, Partido) %>% summarise(Divulgação = sum(Valor))
 
 newLine <- data.frame(Nome = "PEDRO/MARCONDES", Partido="PSDB/PSC", Divulgação=61580)
