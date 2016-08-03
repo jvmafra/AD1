@@ -1,6 +1,6 @@
 A fazer:
 
 -> Mostrar mensagem de erro quando não existem observações para dado tipo de serviço
--> Ajustar formatação de strings para considerar o tipo escolhido
+
 -> Mostrar todos deputados no gráfico mesmo que para algum tipo ele esteja zerado
 -> Hover indicando valor exato

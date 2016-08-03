@@ -52,7 +52,7 @@ shinyServer(function(input, output) {
       tipo_gasto = TRUE
       
     } else {
-      nome.tipo = "Todos os tipos de gastos"
+      nome.tipo = "todos os tipos de despesas."
       tipo_gasto = FALSE
     }
     
@@ -74,7 +74,7 @@ shinyServer(function(input, output) {
       ggplot(agrupa_nome, aes(x = reorder(sprintf("%s - %s", Nome, Partido), total_gasto),  
                               y = total_gasto,  
                               fill = Ideologia_Partidaria)) +
-        ggtitle(sprintf("Gastos dos deputados (%s)", nome.mes)) +
+        ggtitle(sprintf("Gastos dos deputados (%s) com %s", nome.mes, nome.tipo)) +
         geom_bar(stat = "summary", fun.y = "mean") + 
         scale_y_continuous(limits = escala) +
         coord_flip() + 
@@ -87,7 +87,7 @@ shinyServer(function(input, output) {
       agrupa_mes <- gastos_deputado %>% group_by(Mes) %>% summarise(valor = sum(Valor))
       
       ggplot(agrupa_mes, aes(x = Mes, y = valor, group = 1)) +
-        ggtitle(sprintf("GASTOS (JANEIRO A MAIO) DE %s", input$deputado)) +
+        ggtitle(sprintf("GASTOS (JANEIRO A MAIO) DE %s COM %s", input$deputado, input$tipo)) +
         geom_line(colour = "dodgerblue4", alpha=.7) +
         geom_point(colour = "deepskyblue3", size = 3) +
         scale_x_continuous(limits = c(1,5)) +
