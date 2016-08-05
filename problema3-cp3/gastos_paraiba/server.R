@@ -12,13 +12,13 @@ ler_gastos <- function(arquivo){
   return(gastos)
 }
 
-gastos <- ler_gastos("../dados/ano-atual.csv")
+gastos <- ler_gastos("ano-atual.csv")
 gastos = gastos %>% 
   mutate_each(funs(as.factor), sgPartido, sgUF, txNomeParlamentar, indTipoDocumento)
 
 gastos[gastos$txtDescricao == "Emissão Bilhete Aéreo", "txtDescricao"] = "PASSAGENS AÉREAS"
 
-posicao <- ler_gastos("../dados/posicao.csv")
+posicao <- ler_gastos("posicao.csv")
 
 gastos <- merge(gastos, posicao)
 
@@ -47,7 +47,7 @@ shinyServer(function(input, output) {
         if (input$mes == "Todos") escala <- c(0, 150000)
         else escala <- c(0, 60000)
       } 
-      else escala <- c(0, 50000)
+      else escala <- c(0, 60000)
       
       
       tipo_gasto = TRUE
@@ -73,14 +73,14 @@ shinyServer(function(input, output) {
         summarise(total_gasto = sum(Valor))
       
       if (nrow(agrupa_nome) == 0){
-        validate("Não existem deputados com esse tipo de gasto")
+        validate("Não existem deputados com esse tipo de gasto no mês selecionado")
       } else {
         ggplot(agrupa_nome, aes(x = reorder(paste(Nome, "-", Partido), total_gasto),  
                                 y = total_gasto,  
                                 fill = Ideologia_Partidaria)) +
           ggtitle(sprintf("Gastos dos deputados (%s) com %s", nome.mes, nome.tipo)) +
           geom_bar(stat = "summary", fun.y = "mean") + 
-          geom_label(aes(label = paste("R$",as.integer(total_gasto))), hjust=0.3, vjust=0.5, fontface = "bold", size = 4) +
+          geom_label(aes(label = paste("R$",as.integer(total_gasto))), hjust=0.3, vjust=0.5, fontface = "bold", size = 4, show.legend = FALSE) +
           scale_y_continuous(limits = escala) +
           coord_flip() + 
           xlab("Nome do deputado") +
@@ -105,7 +105,7 @@ shinyServer(function(input, output) {
           ggtitle(sprintf("Gastos (Janeiro a Maio) de %s com %s", input$deputado, nome.tipo)) +
           geom_line(colour = "dodgerblue4", alpha=.7) +
           geom_point(colour = "deepskyblue3", size = 3) +
-          geom_label(aes(label = paste("R$", as.integer(valor))), hjust=0.5, vjust=-1, fontface = "bold", colour = "dodgerblue3", size = 4) +
+          geom_label(aes(label = paste("R$", as.integer(valor))), hjust=0.5, vjust=-1, fontface = "bold", colour = "dodgerblue3", size = 4, show.legend = FALSE) +
           xlab("Mês do ano") +
           ylab("Valor gasto (em reais)") +
           scale_x_continuous(limits = c(1,5)) +

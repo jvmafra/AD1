@@ -1,0 +1,10 @@
+name: gastos_paraiba
+account: jvmafra
+server: shinyapps.io
+appId: 118514
+bundleId: 524364
+url: https://jvmafra.shinyapps.io/gastos_paraiba/
+when: 1470364621.69667
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: dados/ano-atual.csv|dados/bancada.csv|dados/posicao.csv|dados/valor-cota-por-estado.csv
