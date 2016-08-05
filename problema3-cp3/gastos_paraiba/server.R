@@ -2,6 +2,7 @@
 library(shiny)
 library(dplyr, warn.conflicts = FALSE)
 library(ggplot2)
+library(plotly)
 theme_set(theme_bw())
 
 
@@ -71,27 +72,48 @@ shinyServer(function(input, output) {
         group_by(Nome, Ideologia_Partidaria, Partido) %>% 
         summarise(total_gasto = sum(Valor))
       
-      ggplot(agrupa_nome, aes(x = reorder(sprintf("%s - %s", Nome, Partido), total_gasto),  
-                              y = total_gasto,  
-                              fill = Ideologia_Partidaria)) +
-        ggtitle(sprintf("Gastos dos deputados (%s) com %s", nome.mes, nome.tipo)) +
-        geom_bar(stat = "summary", fun.y = "mean") + 
-        scale_y_continuous(limits = escala) +
-        coord_flip() + 
-        xlab("Nome do deputado") +
-        ylab("Valor gasto") +
-        labs(fill = "Ideologia partidária")
+      if (nrow(agrupa_nome) == 0){
+        validate("Não existem deputados com esse tipo de gasto")
+      } else {
+        ggplot(agrupa_nome, aes(x = reorder(paste(Nome, "-", Partido), total_gasto),  
+                                y = total_gasto,  
+                                fill = Ideologia_Partidaria)) +
+          ggtitle(sprintf("Gastos dos deputados (%s) com %s", nome.mes, nome.tipo)) +
+          geom_bar(stat = "summary", fun.y = "mean") + 
+          geom_label(aes(label = paste("R$",as.integer(total_gasto))), hjust=0.3, vjust=0.5, fontface = "bold", size = 4) +
+          scale_y_continuous(limits = escala) +
+          coord_flip() + 
+          xlab("Nome do deputado") +
+          ylab("Valor gasto") +
+          labs(fill = "Ideologia partidária")
+        
+        
+        
+      }
+        
+      
+     
       
     } else {
       gastos_deputado <- gastos_pb %>% filter(Nome == input$deputado)
       agrupa_mes <- gastos_deputado %>% group_by(Mes) %>% summarise(valor = sum(Valor))
       
-      ggplot(agrupa_mes, aes(x = Mes, y = valor, group = 1)) +
-        ggtitle(sprintf("GASTOS (JANEIRO A MAIO) DE %s COM %s", input$deputado, input$tipo)) +
-        geom_line(colour = "dodgerblue4", alpha=.7) +
-        geom_point(colour = "deepskyblue3", size = 3) +
-        scale_x_continuous(limits = c(1,5)) +
-        scale_y_continuous(limits = c(0, 70000))
+      if (nrow(agrupa_mes) == 0) {
+        validate("Esse deputado não possui gastos com esse tipo de despesa.")
+      } else {
+        ggplot(agrupa_mes, aes(x = Mes, y = valor, group = 1)) +
+          ggtitle(sprintf("Gastos (Janeiro a Maio) de %s com %s", input$deputado, nome.tipo)) +
+          geom_line(colour = "dodgerblue4", alpha=.7) +
+          geom_point(colour = "deepskyblue3", size = 3) +
+          geom_label(aes(label = paste("R$", as.integer(valor))), hjust=0.5, vjust=-1, fontface = "bold", colour = "dodgerblue3", size = 4) +
+          xlab("Mês do ano") +
+          ylab("Valor gasto (em reais)") +
+          scale_x_continuous(limits = c(1,5)) +
+          scale_y_continuous(limits = c(0, 70000))
+      }
+
+      
+      
 
     }
     

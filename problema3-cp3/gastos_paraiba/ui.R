@@ -18,7 +18,7 @@ shinyUI(fluidPage(
                   label = "Escolha um mês",
                   list("Janeiro", "Fevereiro",
                               "Março", "Abril", "Maio", "Todos"),
-                  selected = "Janeiro",
+                  selected = "Todos",
                   inline = FALSE, width = '400px'),
       selectInput("tipo",
                   label = "Tipo de gasto",
