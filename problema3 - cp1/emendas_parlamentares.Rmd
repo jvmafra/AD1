@@ -1,0 +1,100 @@
+---
+title: "Emendas Parlamentares"
+author: "João Victor Barroso Mafra"
+date: "12 de agosto de 2016"
+output: html_document
+---
+
+```{r}
+require(ggplot2, quietly = TRUE)
+require(GGally, quietly = TRUE)
+require(reshape2, quietly = TRUE)
+require(dplyr, quietly = TRUE)
+library(ggfortify)
+library(cluster)
+library(ggdendro)
+library(knitr)
+theme_set(theme_bw())
+```
+
+
+
+##EMENDAS PARLAMENTARES DESTINADAS ÀS CIDADES NORDESTINAS
+
+
+```{r}
+
+ler_gastos <- function(arquivo){
+  
+  require("dplyr", warn.conflicts = FALSE)
+  
+  emendas = read.csv(arquivo, stringsAsFactors = TRUE, encoding='UTF-8')
+  return (emendas)
+}
+
+emendas <- ler_gastos("../dados/emendas_detalhes_parlamentar.csv")
+
+emendas <- subset(emendas, UF_PROPONENTE == "PB" | UF_PROPONENTE == "RN" | UF_PROPONENTE == "CE" | UF_PROPONENTE == "AL"| UF_PROPONENTE == "SE" | UF_PROPONENTE == "MA" | UF_PROPONENTE == "PI" | UF_PROPONENTE == "PE" | UF_PROPONENTE == "BA")
+
+emendas <- emendas %>% select(11,12,18,34,37)
+
+emendas <- subset(emendas, funcao.imputada == "Urbanismo")
+
+gastos_2014 <- emendas %>% filter(ANO_PROP == "2014")
+gastos_2015 <- emendas %>% filter(ANO_PROP == "2015")
+
+agrupa_2014 <- gastos_2014 %>% group_by(MUNIC_PROPONENTE, UF_PROPONENTE) %>% summarise(valor_2014 = sum(VL_REPASSE_PROP))
+
+agrupa_2015 <- gastos_2015 %>% group_by(MUNIC_PROPONENTE, UF_PROPONENTE) %>% summarise(valor_2015 = sum(VL_REPASSE_PROP))
+
+
+df <- merge(agrupa_2014, agrupa_2015)
+
+
+
+
+
+```
+
+
+```{r}
+
+df[3] <- log(df[3])
+df[4] <- log(df[4])
+
+ggplot(df, aes(x = valor_2014, y = valor_2015)) + 
+  geom_point(size = 2)
+
+dists = dist(df, method = "euclidean")
+hc = hclust(dists, method = "ward.D")
+
+plot(hc, hang = -1, cex = 0.8)
+
+rect.hclust(hc, k=3)
+
+df$grupo = factor(cutree(hc, k=3))
+
+ggplot(df, aes(x = valor_2014, y = valor_2015, colour = grupo)) + 
+  geom_point(size = 2)  + geom_text(aes(label = UF_PROPONENTE, hjust=0.5, vjust=-1)) +
+  xlab("Total destinado em 2014") +
+  ylab("Total destinado em 2015")
+
+
+
+
+
+```
+
+
+``` {r}
+
+df2 <- df[,3:4]
+
+km <- kmeans(df2, centers=3, nstart=10)
+
+autoplot(km, data = df2)
+
+autoplot(km, data = df2, frame = TRUE)
+
+
+```
