@@ -5,7 +5,7 @@ date: "12 de agosto de 2016"
 output: html_document
 ---
 
-```{r}
+```{r echo = FALSE, message=F, warning=F}
 require(ggplot2, quietly = TRUE)
 require(GGally, quietly = TRUE)
 require(reshape2, quietly = TRUE)
@@ -22,7 +22,33 @@ theme_set(theme_bw())
 ##EMENDAS PARLAMENTARES DESTINADAS ÀS CIDADES NORDESTINAS
 
 
-```{r}
+#Variáveis escolhidas
+
+As observações/convênios foram filtrados para considerar apenas os estados nordestinos. Além disso, a fim de restringir mais a quantidade de dados, foram filtrados aquele convênios cuja função imputada está na área de urbanismo. Saúde e Urbanismo são as duas áreas onde mais repasses de emendas parlamentares são feitas. Valores maiores são repassados para Saúde, porém mais cidades são contempladas com emendas para segunda opção, o que motivou minha escolha para ela.
+
+
+O objetivo aqui é comparar os repasses de emendas por parte do governo federal para uma determinada cidade em dois anos diferentes. Assim, foram selecionados os anos de 2014 e 2015 (Como 2016 ainda não acabou, talvez não pudéssemos tirar conclusões muito convincentes). Foi feito uma agrupamento por cidade para assim obtermos o valor total repassado para elas com a função citada acima (Urbanismo).
+
+Os valores foram transformados em log para uma melhor visualização.
+
+#1. Método de agrupamento utilizado
+
+Aglomeração hierárquica usando o método Ward (e o método euclidiano para medir a distância entre os pontos). O motivo da escolha foi ter apresentado um resultado melhor que o método K-Means.
+
+#2. Parâmetros
+
+A quantidade de grupos desejada para o agrupamento ficou entre 3 e 4, pois apresentaram resultados mais satisfatórios. O método para distância entre os pontos foi o "euclidean" e o método para distância entre os grupos foi o "Ward.D"
+
+#3. Qualidade do agrupamento
+
+O primeiro gráfico mostrou um agrupamento preciso, e até lógico. Nas análises posteriores, julgo os agrupamentos como razoáveis. Alguns pontos estão bem próximos uns dos outros, mas em grupos diferentes. O gráfico de silhueta mostrou que alguns não se relacionam tão bem com o grupo ao qual foi incluído.
+
+#4. Conclusões
+
+Serão abordadas à medida que os gráficos forem apresentados
+
+
+```{r echo=FALSE, message=F, warning=F}
 
 ler_gastos <- function(arquivo){
   
@@ -36,65 +62,103 @@ emendas <- ler_gastos("../dados/emendas_detalhes_parlamentar.csv")
 
 emendas <- subset(emendas, UF_PROPONENTE == "PB" | UF_PROPONENTE == "RN" | UF_PROPONENTE == "CE" | UF_PROPONENTE == "AL"| UF_PROPONENTE == "SE" | UF_PROPONENTE == "MA" | UF_PROPONENTE == "PI" | UF_PROPONENTE == "PE" | UF_PROPONENTE == "BA")
 
-emendas <- emendas %>% select(11,12,18,34,37)
-
-emendas <- subset(emendas, funcao.imputada == "Urbanismo")
-
-gastos_2014 <- emendas %>% filter(ANO_PROP == "2014")
-gastos_2015 <- emendas %>% filter(ANO_PROP == "2015")
-
-agrupa_2014 <- gastos_2014 %>% group_by(MUNIC_PROPONENTE, UF_PROPONENTE) %>% summarise(valor_2014 = sum(VL_REPASSE_PROP))
-
-agrupa_2015 <- gastos_2015 %>% group_by(MUNIC_PROPONENTE, UF_PROPONENTE) %>% summarise(valor_2015 = sum(VL_REPASSE_PROP))
+emendas <- emendas %>% select(11,8,12,18,37)
 
 
-df <- merge(agrupa_2014, agrupa_2015)
+agrupado <- emendas %>% group_by(funcao.imputada) %>% summarise(total_repassado = sum(VALOR_REPASSE_EMENDA))
+
+emendas_urbanismo <- subset(emendas, funcao.imputada == "Urbanismo")
+
+gastos_2014 <- emendas_urbanismo %>% filter(ANO_PROP == "2014")
+gastos_2015 <- emendas_urbanismo %>% filter(ANO_PROP == "2015")
+
+agrupa_2014 <- gastos_2014 %>% group_by(MUNIC_PROPONENTE, UF_PROPONENTE) %>% summarise(valor_2014 = sum(VALOR_REPASSE_EMENDA))
+
+agrupa_2015 <- gastos_2015 %>% group_by(MUNIC_PROPONENTE, UF_PROPONENTE) %>% summarise(valor_2015 = sum(VALOR_REPASSE_EMENDA))
 
 
+df <- merge(agrupa_2014, agrupa_2015, all = TRUE)
+df[is.na(df)] <- 1
 
+
+df2 <- merge(agrupa_2014, agrupa_2015)
 
 
 ```
 
 
-```{r}
+Aqui as cidades foram agrupadas em 3 grupos bem claros. As que receberam repasse apenas em 2014, as que receberam apenas em 2015 e as que receberam repasse em ambos os anos. Lembrando que são levadas em consideração apenas os convênios cuja função imputada é Urbanismo.
+
+
+```{r echo=FALSE, message=F, warning=F}
 
 df[3] <- log(df[3])
 df[4] <- log(df[4])
 
-ggplot(df, aes(x = valor_2014, y = valor_2015)) + 
-  geom_point(size = 2)
+df <- df %>% select(3,4)
 
 dists = dist(df, method = "euclidean")
 hc = hclust(dists, method = "ward.D")
 
-plot(hc, hang = -1, cex = 0.8)
-
-rect.hclust(hc, k=3)
-
 df$grupo = factor(cutree(hc, k=3))
 
 ggplot(df, aes(x = valor_2014, y = valor_2015, colour = grupo)) + 
-  geom_point(size = 2)  + geom_text(aes(label = UF_PROPONENTE, hjust=0.5, vjust=-1)) +
-  xlab("Total destinado em 2014") +
-  ylab("Total destinado em 2015")
-
-
-
+  geom_point(size = 2) +
+  xlab("Total repassado em 2014 (Urbanismo)") +
+  ylab("Total destinado em 2015 (Urbanismo)")
 
 
 ```
 
 
-``` {r}
 
-df2 <- df[,3:4]
+Agora vamos considerar apenas as cidades que receberam repasse nos dois anos e observar como se comporta um agrupamento em 3 grupos.
 
-km <- kmeans(df2, centers=3, nstart=10)
+O grupo verde, mais esquerda, representa aquelas cidades que receberam poucos investimentos nos dois anos. O grupo laranja é mais intermediário, apresentando uma média maior de repasses recebidos nos dois anos, enquanto o grupo azul, mais acima, representa as cidades que tiveram uma boa média de repasses recebidos. Existe uma cidade pertecente ao grupo azul que praticamente não recebeu recursos em 2015, porém foi uma das que mais recebeu em 2014, o que acabou compensando e fazendo com que ela figurasse neste grupo.
 
-autoplot(km, data = df2)
 
-autoplot(km, data = df2, frame = TRUE)
+Conforme esperado, muitas das capitais figuram no grupo azul, a exemplo de Fortaleza, Maceió, Teresina, Salvador, Recife e Aracaju. Da Paraíba, Campina Grande e Guarabira estão presentes. João Pessa não recebeu muitos repasses na área de saúde, mas nenhuma de Urbanismo nesses dois anos. Natal e São Luís não aparecem nesse agrupamento pois não possuem repasses recebidos registrados em 2014, apenas em 2015.
 
+
+Outro ponto interessante observado é que das 36 cidades do grupo azul, 12 são do Ceará. Em 2015, O governo do estado negociou com a Assembleia Legislativa a destinação de metade do valor das emendas parlamentares para ações de convivência com o Semiárido e de melhorias na saúde, o que pode explicar tal fato.
+
+
+
+``` {r echo=FALSE, message=F, warning=F}
+
+df2[3] <- log(df2[3])
+df2[4] <- log(df2[4])
+
+dists = dist(df2, method = "euclidean")
+hc = hclust(dists, method = "ward.D")
+
+df2$grupo = factor(cutree(hc, k=3))
+
+ggplot(df2, aes(x = valor_2014, y = valor_2015, colour = grupo)) + 
+  geom_point(size = 2) +
+  xlab("Total repassado em 2014 (Urbanismo)") +
+  ylab("Total destinado em 2015 (Urbanismo)")
+
+
+```
+
+
+Tentando fazer um agrupamento em 4 grupos, temos que o grupo intermediário que tínhamos anteriormente foi dividido em 2. Um que recebeu mais repasses em 2014 e outro que recebeu mais em 2015. Os outros dois permaneceram intactos.
+
+Os últimos dois gráficos mostram a distribuição dos pontos nos grupos formados. Percebe-se que com quatro variáveis as cidades ficaram melhor distribuídas.
+
+
+```{r echo=FALSE, message=F, warning=F}
+
+df2$grupo = factor(cutree(hc, k=4))
+
+ggplot(df2, aes(x = valor_2014, y = valor_2015, colour = grupo)) + 
+  geom_point(size = 2) +
+  xlab("Total repassado em 2014 (Urbanismo)") +
+  ylab("Total destinado em 2015 (Urbanismo)")
+
+
+plot(silhouette(cutree(hc, k = 4), dists))
+plot(silhouette(cutree(hc, k = 3), dists))
 
 ```
