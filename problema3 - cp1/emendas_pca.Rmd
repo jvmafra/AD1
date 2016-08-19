@@ -1,0 +1,37 @@
+---
+title: "emendas_prob3_cp2"
+author: "João Victor Barroso Mafra"
+date: "19 de agosto de 2016"
+output: html_document
+---
+
+```{r echo = FALSE, message=F, warning=F}
+require(ggplot2, quietly = TRUE)
+require(dplyr, quietly = TRUE)
+library(knitr)
+theme_set(theme_bw())
+```
+
+
+```{r echo=FALSE, message=F, warning=F}
+
+ler_gastos <- function(arquivo){
+  
+  require("dplyr", warn.conflicts = FALSE)
+  
+  emendas = read.csv(arquivo, stringsAsFactors = FALSE, encoding='UTF-8')
+  return (emendas)
+}
+
+emendas_completas <- ler_gastos("../dados/emendas_detalhes_parlamentar.csv")
+emendas_area <- ler_gastos("../dados/emendas_area_parlamentar.csv")
+
+emendas_estado <- emendas_completas %>% select(5,11)
+
+emendas_estado <- unique(emendas_estado)
+
+emendas <- merge(emendas_area, emendas_estado)
+
+```
+
+
