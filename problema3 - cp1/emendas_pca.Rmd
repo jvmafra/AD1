@@ -7,8 +7,14 @@ output: html_document
 
 ```{r echo = FALSE, message=F, warning=F}
 require(ggplot2, quietly = TRUE)
+library(ggfortify, quietly = TRUE)
+# http://rpubs.com/sinhrks/basics
+require(GGally, quietly = TRUE)
+require(reshape2, quietly = TRUE)
 require(dplyr, quietly = TRUE)
-library(knitr)
+library(knitr, quietly = TRUE)
+library(cluster)
+library(ggdendro)
 theme_set(theme_bw())
 ```
 
@@ -31,6 +37,76 @@ emendas_estado <- emendas_completas %>% select(5,11)
 emendas_estado <- unique(emendas_estado)
 
 emendas <- merge(emendas_area, emendas_estado)
+
+```
+
+```{r echo=FALSE, message=F, warning=F}
+emendas <- emendas %>% select(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
+
+agrupa_estado = emendas %>% group_by(UF_PROPONENTE) %>% summarise_each(funs(sum))
+
+agrupa_estado <- agrupa_estado %>% select(1,4, 8, 12, 17)
+
+
+```
+
+#PCA
+
+```{r}
+
+agrupa_estado[2] <- log(agrupa_estado[2])
+agrupa_estado[3] <- log(agrupa_estado[3])
+agrupa_estado[4] <- log(agrupa_estado[4])
+agrupa_estado[5] <- log(agrupa_estado[5])
+
+row.names(agrupa_estado) = agrupa_estado$UF_PROPONENTE
+# scale()
+pr.out = prcomp(select(agrupa_estado, -UF_PROPONENTE), scale = TRUE) 
+
+kable(pr.out$rotation)
+biplot(pr.out, scale = 0)
+
+autoplot(pr.out, label = TRUE, label.size = 3, shape = FALSE)
+
+autoplot(pr.out, label = TRUE, label.size = 3, shape = FALSE, 
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+
+# Porcentagem da variância explicada: 
+plot_pve <- function(prout){
+  pr.var <- pr.out$sdev^2
+  pve <- pr.var / sum(pr.var)
+  df = data.frame(x = 1:NROW(pve), y = cumsum(pve))
+  ggplot(df, aes(x = x, y = y)) + 
+    geom_point(size = 3) + 
+    geom_line() + 
+    labs(x='Principal Component', y = 'Cumuative Proportion of Variance Explained')
+}
+
+plot_pve(pr.out)
+
+
+```
+
+#TSNE
+
+```{r}
+
+require(Rtsne)
+tsne.out = Rtsne(select(agrupa_estado, -UF_PROPONENTE), 
+                 verbose = TRUE)
+
+df = as.data.frame(tsne.out$Y)
+df$repository_language = dw$repository_language
+
+ggplot(df, aes(x = V1, y = V2, label = repository_language)) + 
+  geom_point(alpha = 0.8, size = 3, color = "tomato") 
+
+ggplot(df, aes(x = V1, y = V2, label = repository_language)) + 
+  geom_point(alpha = 0.2, size = 3, color = "tomato") + 
+  geom_text(alpha = .7, size = 4, hjust = -.2)
+
+
 
 ```
 
