@@ -16,6 +16,7 @@ library(cluster)
 library(ggdendro)
 theme_set(theme_bw())
 library(devtools)
+library(plotly)
  
 ```
 
@@ -79,9 +80,13 @@ row.names(agrupa_estado) = agrupa_estado$UF_PROPONENTE
 # scale()
 pr.out = prcomp(select(agrupa_estado, -UF_PROPONENTE, -REGIAO), scale = TRUE)
 
-autoplot(pr.out, label = TRUE, label.size = 3, label.colour = "darkorange3",shape = FALSE, 
+a <- autoplot(pr.out, label = TRUE, label.size = 3, label.colour = "darkorange3",shape = FALSE, 
          loadings = TRUE, loadings.colour = 'blue',
          loadings.label = TRUE, loadings.label.size = 3)
+
+p = ggplotly(a)
+
+p
 
 ```
 
@@ -130,15 +135,19 @@ ggplot(df, aes(x = V1, y = V2)) + geom_point(aes(colour = REGIAO), size = 2) +
 Podemos tirar informações relevantes de ambos os métodos, dependendo do objetivo. Julgo o PCA mais interessante devido à presença dos quatro vetores representado cada área, que nos dão um norte melhor para analisar os pontos no gráfico e tirar conclusões baseando-se em cada área.
 
 
-Abaixo, nós temos mais uma representação do gráfico utilizando o método PCA, mas agora considerando também a região à qual o estado pertence.
+Abaixo, nós temos mais uma representação do gráfico utilizando o método PCA, mas agora considerando também a região à qual o estado pertence. 
+
+Perceba que também é possível selecionar apenas regiões específicas no gráfico. Se desmarcarmos todas as regiões na legenda e deixarmos apenas a Região Norte por exemplo, podemos ver apenas os estados do Norte na imagem e assim procurar identificar algum padrão neles, que nesse caso é o fato de todos estarem com valor de PC1 bem baixo, indicando que receberam poucos repasses de emendas nessas áreas. Diferente de todos estados do Sul, por exemplo, que possuem PC1 maior que 0.
 
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
 
 
-autoplot(pr.out, data = agrupa_estado, label = TRUE, label.size = 3, label.colour = 'REGIAO',shape = FALSE, 
+b <- autoplot(pr.out, data = agrupa_estado, label = TRUE, label.size = 3, label.colour = 'REGIAO',shape = FALSE, 
          loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
+         loadings.label = TRUE, loadings.label.size = 3, alpha = 1)
+
+ggplotly(b)
 
 
 ```
