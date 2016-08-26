@@ -1,6 +1,5 @@
 ---
-title: "emendas_prob3_cp2"
-author: "João Victor Barroso Mafra"
+title: "Emendas Parlamentares"
 date: "19 de agosto de 2016"
 output: html_document
 ---
@@ -16,7 +15,18 @@ library(knitr, quietly = TRUE)
 library(cluster)
 library(ggdendro)
 theme_set(theme_bw())
+library(devtools)
+ 
 ```
+
+
+#PCA e t-SNE
+
+Para essa análise foram selecionados quatro tipos de função imputada: Saúde e Urbanismo, pois são duas das áreas para as quais mais são destinadas emendas parlamentares, além de Agricultura e Ciência e Tecnologia, que não são muito citadas.
+
+Foi feito um agrupamento por estado, ou seja, temos o total destinado em emendas nas quatro áreas citadas acima para cada estado do Brasil.
+
+Os valores foram transformados em log para uma melhor visualização.
 
 
 ```{r echo=FALSE, message=F, warning=F}
@@ -31,6 +41,7 @@ ler_gastos <- function(arquivo){
 
 emendas_completas <- ler_gastos("../dados/emendas_detalhes_parlamentar.csv")
 emendas_area <- ler_gastos("../dados/emendas_area_parlamentar.csv")
+regioes <- ler_gastos("../dados/regiao.csv")
 
 emendas_estado <- emendas_completas %>% select(5,11)
 
@@ -45,14 +56,19 @@ emendas <- emendas %>% select(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
 
 agrupa_estado = emendas %>% group_by(UF_PROPONENTE) %>% summarise_each(funs(sum))
 
-agrupa_estado <- agrupa_estado %>% select(1,4, 8, 12, 17)
+agrupa_estado <- agrupa_estado %>% select(1,2,4,15, 18)
+
+agrupa_estado <- merge(agrupa_estado, regioes)
 
 
 ```
 
 #PCA
 
-```{r}
+Utilizando PCA para reduzir os dados a duas dimensões, obtemos o resultado abaixo. Quanto mais a direita está um estado, maior o valor destinado a ele nas quatro áreas. Nessa região mais a direita, quanto mais para cima está um ponto, maior foi o valor repassado para Saúde e Ciência e Tecnologia. No nosso caso, temos que Pernambuco foi o estado que mais recebeu repasses nessas duas áreas. Quanto mais para baixo está um ponto, maior foi o valor repassado para Urbanismo e Agricultura. Paraná e Rio Grande do Sul, por exemplo, foram os dois estados que mais receberam repasses para Agricultura. SP está bastante à direita, porém centralizado verticalmente, indicado que ele está "equilibrado" perante as quatro áreas, recebendo uma boa grana em todas.
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
 
 agrupa_estado[2] <- log(agrupa_estado[2])
 agrupa_estado[3] <- log(agrupa_estado[3])
@@ -61,18 +77,19 @@ agrupa_estado[5] <- log(agrupa_estado[5])
 
 row.names(agrupa_estado) = agrupa_estado$UF_PROPONENTE
 # scale()
-pr.out = prcomp(select(agrupa_estado, -UF_PROPONENTE), scale = TRUE) 
+pr.out = prcomp(select(agrupa_estado, -UF_PROPONENTE, -REGIAO), scale = TRUE)
 
-kable(pr.out$rotation)
-biplot(pr.out, scale = 0)
-
-autoplot(pr.out, label = TRUE, label.size = 3, shape = FALSE)
-
-autoplot(pr.out, label = TRUE, label.size = 3, shape = FALSE, 
+autoplot(pr.out, label = TRUE, label.size = 3, label.colour = "darkorange3",shape = FALSE, 
          loadings = TRUE, loadings.colour = 'blue',
          loadings.label = TRUE, loadings.label.size = 3)
 
-# Porcentagem da variância explicada: 
+```
+
+
+Abaixo temos o gráfico da porcentagem da variância explicada. Reduzindo a dois componentes principais (PC1 e PC2) nós temos quase 90% da variância explicada, ou seja, poucas informações foram perdidas durante essa redução de dimensionalidade.
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
 plot_pve <- function(prout){
   pr.var <- pr.out$sdev^2
   pve <- pr.var / sum(pr.var)
@@ -80,34 +97,78 @@ plot_pve <- function(prout){
   ggplot(df, aes(x = x, y = y)) + 
     geom_point(size = 3) + 
     geom_line() + 
-    labs(x='Principal Component', y = 'Cumuative Proportion of Variance Explained')
+    labs(x='Principal Component', y = 'Cumulative Proportion of Variance Explained')
 }
 
 plot_pve(pr.out)
-
-
 ```
 
-#TSNE
+#t-SNE
 
-```{r}
+Na maior parte das iterações são gerados em média 4 grupos bem definidos de estados. SP, MG, PE, SC, RS e PR estão sempre juntos. É o grupo que apresenta um valor elevado de repasses para as quatro áreas. Próximo a eles, mas em um grupo separado, temos estados como CE, ES e MS por exemplo, que não apresentam valores tão altos, mas são os que mais se aproximam do pelotão da frente. Mais afastados desses dois grupos, temos um grupo bem intermediário, composto principalmente por estados do Norte-Nordeste, além do RJ. O outro grupo inclui os estados que receberam pouquíssimas emendas nas quatro áreas, composto por quatro estados do Norte, além do DF e AL.
+
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, results='hide'}
 
 require(Rtsne)
-tsne.out = Rtsne(select(agrupa_estado, -UF_PROPONENTE), 
-                 verbose = TRUE)
+tsne.out = Rtsne(select(agrupa_estado, -UF_PROPONENTE, -REGIAO), 
+                 verbose = TRUE, perplexity = 2, max_iter = 5000, k = 6)
 
 df = as.data.frame(tsne.out$Y)
-df$repository_language = dw$repository_language
+df$UF_PROPONENTE = agrupa_estado$UF_PROPONENTE
+df$REGIAO = agrupa_estado$REGIAO
 
-ggplot(df, aes(x = V1, y = V2, label = repository_language)) + 
-  geom_point(alpha = 0.8, size = 3, color = "tomato") 
-
-ggplot(df, aes(x = V1, y = V2, label = repository_language)) + 
-  geom_point(alpha = 0.2, size = 3, color = "tomato") + 
-  geom_text(alpha = .7, size = 4, hjust = -.2)
-
+ggplot(df, aes(x = V1, y = V2)) + geom_point(aes(colour = REGIAO), size = 2) +
+  geom_text(aes(label=UF_PROPONENTE, colour = REGIAO),hjust=1.2, vjust=1, size = 3)
 
 
 ```
+
+
+
+Podemos tirar informações relevantes de ambos os métodos, dependendo do objetivo. Julgo o PCA mais interessante devido à presença dos quatro vetores representado cada área, que nos dão um norte melhor para analisar os pontos no gráfico e tirar conclusões baseando-se em cada área.
+
+
+Abaixo, nós temos mais uma representação do gráfico utilizando o método PCA, mas agora considerando também a região à qual o estado pertence.
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+
+
+autoplot(pr.out, data = agrupa_estado, label = TRUE, label.size = 3, label.colour = 'REGIAO',shape = FALSE, 
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+
+
+```
+
+
+
+#CONCLUSÕES
+
+A maior parte dos pontos está concentrada à esquerda do gráfico (PC1 pequeno) e em sua região mais central (PC2 próximo de 0), indicando que não há tanta variação nos valores dos repasses nessas quatro áreas entre os estados. Nosso objetivo portanto é tentar explicar os estados que destoam um pouco da maioria (como por exemplo CE, SC, PR, RS, MG, SP e PE).
+
+
+Antes disso, ainda observando os valores baixos de PC1 (estados mais a esquerda), temos que os quatro estados que menos recebem repasses são todos da região Norte (RR, AC, AP e RO). Os outros estados (AM, TO e PA) também possuem valor baixo de PC1 e estão juntos a vários estados nordestinos (como PB, AL, SE, MA, PI e SE).
+
+
+Analisando agora os estados com o valor de PC1 mais elevado comparado aos demais, temos por exemplo o Ceará, que já possui valor de PC1 maior comparado a todos os citados anteriormente e um valor de PC2 que chama atenção. Foi um estado discreto no que diz respeito a repasses em Urbanismo e Agricultura, porém esteve entre os que mais receberam repasse em Saúde e Ciência e Tecnologia.
+
+
+Mais a direita ainda temos três estados do Sul que possuem um valor baixo de PC2 (RS, SC e RS), ou seja, receberam um maior valor de repasses em Agricultura e Urbanismo. Historicamente falando, a região Sul sempre se destacou na agricultura. O RS (campeão em repasses recebidos nessa área), por exemplo, é o maior produto de arroz irrigado do Brasil. SC e MG também se destacam nessa cultura. O Paraná (que ficou em segundo lugar nesse período observado), é um dos maiores produtores de café, além de se destacar na cultura de laranja e cana.
+
+
+São Paulo esteve entre os estados que mais receberam emendas nas quatro áreas, por isso um alto valor de PC1 e um valor de PC2 próximo do 0. Não é à toa que é o principal centro financeiro do país.
+
+
+Um ponto de destaque no gráfico, sem dúvidas, foi Pernambuco. O estado nordestino foi o que recebeu mais dinheiro proveniente de emendas parlamentares nas áreas de Saúde e Ciência e Tecnologia, batendo São Paulo nos dois casos (Além disso foi 5º em Urbanismo e 7º em Agricultura). Pernambuco é considerado um dos maiores pólos de informática do Nordeste. Uma matéria no site do governo também enfatiza que o estado é o que mais recebe investimento em Saúde no Nordeste.
+
+Para mais informações: 
+
+http://portal.saude.pe.gov.br/noticias/secretaria/pe-lidera-ranking-de-investimentos-em-saude-no-ne
+
+
+http://www.diariodepernambuco.com.br/app/noticia/vida-urbana/2016/08/17/interna_vidaurbana,660591/saude-de-pernambuco-e-premiada-pelo-inovasus.shtml
 
 
