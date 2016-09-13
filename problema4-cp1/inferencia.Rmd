@@ -1,0 +1,177 @@
+---
+title: "Inferência"
+author: "João Victor Barroso Mafra"
+date: "9 de setembro de 2016"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(resample)
+theme_set(theme_bw())
+```
+
+
+# PERGUNTA 1:
+
+Foi escolhido a trilogia de "O poderoso chefão" para realizar a análise. 
+
+Godfather, The (1972) - Temos uma amostra de 210 avaliações.
+Godfather: Part II, The (1974) - Temos uma amostra de 140 avaliações.
+Godfather: Part III, The (1990) - Temos uma amostra de 54 avaliações.
+
+Nosso objetivo inicial é analisar a média das avaliações dessas amostras e assim inferir qual dos episódios foi o melhor avaliado pela audiência. Depois, analisaremos a variância dessas notas a fim de observar em qual filme houve uma maior variação nas avaliações.
+
+Inicialmente, vamos observar uma resumo das avaliações de cada filme. Levando em conta apenas os dados amostrais, os dois primeiros filmes são os melhores avaliados em termos de média/mediana, enquanto o terceiro está bem abaixo.
+
+Podemos observar isso também a partir de um histograma. Os dois primeiros filmes possuem bem mais notas máximas que o terceiro.
+
+```{r}
+ler_dados <- function(arquivo){
+  
+  
+  #' L? um csv criado a partir dos dados de gastos dos deputados da 
+  #' C?mara e seta os tipos de colunas mais convenientemente. 
+  #' Vers?o sem readr, para m?quinas onde n?o ? poss?vel instalar esse pacote. 
+  #' ? um pouco mais lenta que a com readr.
+  require("dplyr", warn.conflicts = FALSE)
+  
+  dados = read.csv(arquivo, stringsAsFactors = FALSE, encoding='UTF-8')
+  return(dados)
+}
+
+allFilmes = ler_dados("../dados/movies.csv")
+ratings = ler_dados("../dados/ratings.csv")
+ratings = ratings %>% select (2, 3)
+allFilmes = merge(allFilmes, ratings)
+
+movies_genres =  allFilmes %>%
+    rowwise() %>%
+    mutate(num_genres = length(unlist(strsplit(genres, '[|]'))))
+
+movies_genres = movies_genres %>% group_by(title, num_genres) %>% summarise(media = mean(rating))
+
+poderosoChefao1 = allFilmes %>% filter(title == "Godfather, The (1972)")
+poderosoChefao2 = allFilmes %>% filter(title == "Godfather: Part II, The (1974)")
+poderosoChefao3 = allFilmes %>% filter(title == "Godfather: Part III, The (1990)")
+
+summary(poderosoChefao1$rating)
+summary(poderosoChefao2$rating)
+summary(poderosoChefao3$rating)
+
+
+```
+
+
+
+
+```{r}
+
+poderosoChefao1 %>% ggplot(aes(rating)) + geom_histogram() + xlab("Rating (Poderoso Chefão 1)") + ylab("Número de avaliações")
+
+poderosoChefao2 %>% ggplot(aes(rating)) + geom_histogram() + xlab("Rating (Poderoso Chefão 2)") + ylab("Número de avaliações")
+
+poderosoChefao3 %>% ggplot(aes(rating)) + geom_histogram() + xlab("Rating (Poderoso Chefão 3)") + ylab("Número de avaliações")
+
+
+```
+
+
+A partir das médias das amostras citadas anteriormente, podemos tentar inferir algo sobre a verdadeira média das avaliações de cada filme, ou seja, a opinião da audiência sobre os mesmos. Utilizando um nível de confiança de 95%, vamos encontrar um intervalo de confiança para a média real das avaliações.
+
+Se colhermos n amostras de mesmo tamanho e calcularmos o intervalo de confiança para cada uma delas, espera-se que em 95% dos casos esse intervalo calculado contenha a verdadeira média.
+
+Abaixo temos o resultado e um gráfico para melhor analisá-los. Os dois primeiros filmes receberam as melhores avaliações. Os intervalos para os dois se interceptam, mas mesmo assim podemos notar uma certa superioridade do filme 1 (com rating médio entre 4.26 e 2.49), que possui um intervalo menor (erro menor) por termos uma amostra maior de avaliações.
+
+O filme 3 está bem abaixo dos outros dois. Seu rating médio encontra-se entre 2.93 e 3.54, (um maior intervalo de confiança, com um maior erro, devido a um menor número de amostras).
+
+```{r}
+
+b = bootstrap(poderosoChefao1, mean(rating), R = 10000)
+mean.filme_1 = CI.bca(b, probs = c(.025, .975))
+print ("Intervalo de confiança para média - O Poderoso Chefão 1")
+mean.filme_1
+
+
+b = bootstrap(poderosoChefao2, mean(rating), R = 10000)
+mean.filme_2 = CI.bca(b, probs = c(.025, .975))
+print ("Intervalo de confiança para média - O Poderoso Chefão 2")
+mean.filme_2
+
+b = bootstrap(poderosoChefao3, mean(rating), R = 10000)
+mean.filme_3 = CI.bca(b, probs = c(.025, .975))
+print ("Intervalo de confiança para média - O Poderoso Chefão 3")
+mean.filme_3
+
+df = data.frame(rbind(mean.filme_1, 
+                      mean.filme_2,
+                      mean.filme_3))
+
+df$title = row.names(df)
+
+df[1,3] = "O Poderoso Chefão 1"
+df[2,3] = "O Poderoso Chefão 2"
+df[3,3] = "O Poderoso Chefão 3"
+
+
+df %>% 
+  ggplot(aes(x = title, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + xlab("Título") + ylab("Intervalo de confiança para a média das avaliações (Confiança 95%)")
+
+```
+
+
+Vamos usar o mesmo princípio para observar a variância das avaliações com o objetivo de verificar em qual filme houve uma maior variação nas notas.
+
+Os três intervalos de confiança se interceptam em algum ponto, impedindo conclusões totalmente precisas. Apesar disso, pela imagem podemos ver que o filme 3 foi aquele que sofreu uma maior variação nas avaliações atribuídas. Os filmes 1 e 2 apresentaram resultados próximos assim como na média, com uma interseção considerável entre seus intervalos. 
+
+
+```{r}
+
+b = bootstrap(poderosoChefao1, var(rating), R = 10000)
+var.filme_1 = CI.bca(b, probs = c(.025, .975))
+print ("Intervalo de confiança para  - O Poderoso Chefão 1")
+var.filme_1
+
+
+b = bootstrap(poderosoChefao2, var(rating), R = 10000)
+var.filme_2 = CI.bca(b, probs = c(.025, .975))
+print ("Intervalo de confiança - O Poderoso Chefão 2")
+var.filme_2
+
+b = bootstrap(poderosoChefao3, var(rating), R = 10000)
+var.filme_3 = CI.bca(b, probs = c(.025, .975))
+print ("Intervalo de confiança - O Poderoso Chefão 3")
+var.filme_3
+
+df2 = data.frame(rbind(var.filme_1, 
+                      var.filme_2,
+                      var.filme_3))
+
+df2$title = row.names(df)
+
+df2[1,3] = "O Poderoso Chefão 1"
+df2[2,3] = "O Poderoso Chefão 2"
+df2[3,3] = "O Poderoso Chefão 3"
+
+
+df2 %>% 
+  ggplot(aes(x = title, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + xlab("Título") + ylab("Intervalo de confiança para variância das avaliações (Confiança 95%)")
+
+
+```
+
+
+# PERGUNTA 2
+
+```{r}
+ggplot(movies_genres, aes(x= media, y = num_genres)) + geom_point() + xlab("Media") + ylab("Numero Generos")
+
+
+
+
+```
