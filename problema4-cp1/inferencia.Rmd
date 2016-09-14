@@ -1,11 +1,10 @@
 ---
-title: "Inferência"
-author: "João Victor Barroso Mafra"
+title: "Inferência sobre avaliação de filmes"
 date: "9 de setembro de 2016"
 output: html_document
 ---
 
-```{r}
+```{r echo=FALSE, message=F, warning=F}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(GGally)
@@ -17,7 +16,7 @@ theme_set(theme_bw())
 
 # PERGUNTA 1:
 
-Foi escolhido a trilogia de "O poderoso chefão" para realizar a análise. 
+Foi escolhida a trilogia de "O poderoso chefão" para realizar a análise. 
 
 Godfather, The (1972) - Temos uma amostra de 210 avaliações.
 Godfather: Part II, The (1974) - Temos uma amostra de 140 avaliações.
@@ -29,7 +28,7 @@ Inicialmente, vamos observar uma resumo das avaliações de cada filme. Levando 
 
 Podemos observar isso também a partir de um histograma. Os dois primeiros filmes possuem bem mais notas máximas que o terceiro.
 
-```{r}
+```{r echo=FALSE, message=F, warning=F}
 
 ler_dados <- function(arquivo){
   require("dplyr", warn.conflicts = FALSE)
@@ -61,7 +60,7 @@ summary(poderosoChefao3$rating)
 
 
 
-```{r}
+```{r echo=FALSE, message=F, warning=F}
 
 poderosoChefao1 %>% ggplot(aes(rating)) + geom_histogram() + xlab("Rating (Poderoso Chefão 1)") + ylab("Número de avaliações")
 
@@ -73,15 +72,15 @@ poderosoChefao3 %>% ggplot(aes(rating)) + geom_histogram() + xlab("Rating (Poder
 ```
 
 
-A partir das médias das amostras citadas anteriormente, podemos tentar inferir algo sobre a verdadeira média das avaliações de cada filme, ou seja, a opinião da audiência sobre os mesmos. Utilizando um nível de confiança de 95%, vamos encontrar um intervalo de confiança para a média real das avaliações.
+A partir das médias das amostras citadas anteriormente, podemos tentar inferir algo sobre a verdadeira média das avaliações de cada filme, ou seja, a opinião da audiência sobre os mesmos. Utilizando um nível de confiança de 95%, vamos encontrar um intervalo de confiança para a média real das avaliações de cada filme.
 
 Se colhermos n amostras de mesmo tamanho e calcularmos o intervalo de confiança para cada uma delas, espera-se que em 95% dos casos esse intervalo calculado contenha a verdadeira média.
 
-Abaixo temos o resultado e um gráfico para melhor analisá-los. Os dois primeiros filmes receberam as melhores avaliações. Os intervalos para os dois se interceptam, mas mesmo assim podemos notar uma certa superioridade do filme 1 (com rating médio entre 4.26 e 2.49), que possui um intervalo menor (erro menor) por termos uma amostra maior de avaliações.
+Abaixo temos o resultado e um gráfico para melhor analisá-los. Os dois primeiros filmes receberam as melhores avaliações. Os intervalos para os dois se interceptam, mas mesmo assim podemos notar uma certa superioridade do filme 1 (com rating médio entre 4.26 e 4.49), que possui um intervalo menor (erro menor) por termos uma amostra maior de avaliações.
 
-O filme 3 está bem abaixo dos outros dois. Seu rating médio encontra-se entre 2.93 e 3.54, (um maior intervalo de confiança, com um maior erro, devido a um menor número de amostras).
+O filme 3 está bem abaixo dos outros dois. Seu rating médio encontra-se entre 2.93 e 3.54, (possui um maior intervalo de confiança, com um maior erro, devido a um menor número de amostras).
 
-```{r}
+```{r echo=FALSE, message=F, warning=F}
 
 b = bootstrap(poderosoChefao1, mean(rating), R = 10000)
 mean.filme_1 = CI.bca(b, probs = c(.025, .975))
@@ -112,7 +111,7 @@ df[3,3] = "O Poderoso Chefão 3"
 
 df %>% 
   ggplot(aes(x = title, ymin = X2.5., ymax = X97.5.)) + 
-  geom_errorbar(width = .2) + xlab("Título") + ylab("Intervalo de confiança para a média das avaliações (Confiança 95%)")
+  geom_errorbar(width = .2) + xlab("Título") + ylab("Intervalo de confiança para a média das notas (Conf = 95%)")
 
 ```
 
@@ -122,7 +121,7 @@ Vamos usar o mesmo princípio para observar a variância das avaliações com o 
 Os três intervalos de confiança se interceptam em algum ponto, impedindo conclusões totalmente precisas. Apesar disso, pela imagem podemos ver que o filme 3 foi aquele que sofreu uma maior variação nas avaliações atribuídas. Os filmes 1 e 2 apresentaram resultados próximos assim como na média, com uma interseção considerável entre seus intervalos. 
 
 
-```{r}
+```{r echo=FALSE, message=F, warning=F}
 
 b = bootstrap(poderosoChefao1, var(rating), R = 10000)
 var.filme_1 = CI.bca(b, probs = c(.025, .975))
@@ -153,7 +152,7 @@ df2[3,3] = "O Poderoso Chefão 3"
 
 df2 %>% 
   ggplot(aes(x = title, ymin = X2.5., ymax = X97.5.)) + 
-  geom_errorbar(width = .2) + xlab("Título") + ylab("Intervalo de confiança para variância das avaliações (Confiança 95%)")
+  geom_errorbar(width = .2) + xlab("Título") + ylab("Intervalo de confiança para variância das notas (Conf = 95%)")
 
 
 ```
@@ -161,10 +160,14 @@ df2 %>%
 
 # PERGUNTA 2
 
-```{r}
+Considerando todas as avaliações sobre todos os filmes, vamos verificar se há alguma relação entre as notas recebidas e a quantidade de gêneros presentes no filme. Dado que temos dados amostrais, vamos construir um intervalo de confiança para médias das avaliações de filmes que contém entre 1 e 6 gêneros.
+
+Com 95% de confiança, tem-se por exemplo, que a média de avaliações das pessoas para filmes com 5 gêneros está entre 3.54 e 3.60, aproximadamente. A explicação é a mesma para as demais quantidades gêneros.
+
+```{r echo=FALSE, message=F, warning=F}
 
 
-num_repeticoes = 10
+num_repeticoes = 10000
 
 boots_genero <- function(df, numero_generos, repeticoes){
   var = df %>% filter(num_genres == numero_generos)
@@ -180,54 +183,38 @@ quatro.generos = boots_genero(movies_genres, 4, num_repeticoes)
 cinco.genero = boots_genero(movies_genres, 5, num_repeticoes)
 seis.generos = boots_genero(movies_genres, 6, num_repeticoes)
 
-dois.generos = movies_genres %>% filter(num_genres == 2)
-b = bootstrap(dois.generos, mean(rating), R = num_repeticoes)
-var.dois.generos = CI.bca(b, probs = c(.025, .975))
 
-tres.generos = movies_genres %>% filter(num_genres == 3)
-b = bootstrap(tres.generos, mean(rating), R = num_repeticoes)
-var.tres.generos = CI.bca(b, probs = c(.025, .975))
-
-quatro.generos = movies_genres %>% filter(num_genres == 4)
-b = bootstrap(quatro.generos, mean(rating), R = num_repeticoes)
-var.quatro.generos = CI.bca(b, probs = c(.025, .975))
-
-cinco.generos = movies_genres %>% filter(num_genres == 5)
-b = bootstrap(cinco.generos, mean(rating), R = num_repeticoes)
-var.cinco.generos = CI.bca(b, probs = c(.025, .975))
-
-seis.generos = movies_genres %>% filter(num_genres == 6)
-b = bootstrap(seis.generos, mean(rating), R = num_repeticoes)
-var.seis.generos = CI.bca(b, probs = c(.025, .975))
-
-
-df_generos = data.frame(rbind(var.um.genero, var.dois.generos, var.tres.generos, var.quatro.generos, var.cinco.generos, var.seis.generos))
+df_generos = data.frame(rbind(um.genero, dois.generos, tres.generos, quatro.generos, cinco.genero, seis.generos))
 
 df_generos$num_generos= row.names(df_generos)
 
 df_generos %>% 
   ggplot(aes(x = num_generos, ymin = X2.5., ymax = X97.5.)) + 
-  geom_errorbar(width = .2) + xlab("Numero de generos") + ylab("Intervalo de confiança para media das avaliações (Confiança 95%)")
+  geom_errorbar(width = .2) + xlab("Numero de gêneros") + ylab("Intervalo de confiança para media das notas (Conf = 95%)")
 
 
 ```
 
 
+Agora vamos calcular a diferença entre as médias de todas as avaliações sobre filmes com apenas 1 gênero e 5 gêneros. Pelo gráfico anterior, já percebemos claramente que os usuários dão uma nota maior a filmes com 5 gêneros, mas a diferença é muito pequena.
+
+Essa diferença citada está entre 0.1 e 0.16, aproxidamente, com 95% de confiança. Ou seja, é uma diferença significativa, mas que na prática não serve praticamente de nada. Podemos concluir assim, que a quantidade de gêneros presentes em um filme não interfere na nota que as pessoas atribuem ao mesmo.
 
 
-```{r}
+```{r echo=FALSE, message=F, warning=F}
 
-df = movies_genres %>% filter (num_genres == 1 || num_genres == 5)
+test1 = movies_genres %>% filter (num_genres == 1)
 
-b.diff.means = bootstrap2(data = df$rating, 
-                          treatment = df$num_genres, 
-                          mean)
+test2 = movies_genres %>% filter (num_genres == 5)
 
-means.diff = CI.percentile(b.diff.means, probs = c(.025, .975))
-means.diff
 
-data.frame(means.diff) %>% 
-  ggplot(aes(x = "Diferença", ymin = X2.5., ymax = X97.5.)) + 
+b = bootstrap2(data = test2$rating, 
+               data2 = test1$rating, 
+               mean)
+means.diff2 = CI.percentile(b, probs = c(.025, .975))
+
+data.frame(means.diff2) %>% 
+  ggplot(aes(x = "Diferença entre as médias das avaliações dos filmes com um e cinco gêneros", ymin = X2.5., ymax = X97.5.)) + 
   geom_errorbar(width = .2) + 
   geom_hline(yintercept = 0, colour = "darkorange")
 
