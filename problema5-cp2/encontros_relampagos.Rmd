@@ -1,0 +1,45 @@
+---
+title: "Encontros relâmpagos"
+author: "João Victor Barroso Mafra"
+date: "4 de outubro de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+theme_set(theme_bw())
+```
+
+```{r echo=FALSE, message=F, warning=F}
+
+ler_dados <- function(arquivo){
+  require("dplyr", warn.conflicts = FALSE)
+  
+  dados = read.csv(arquivo, stringsAsFactors = FALSE, encoding='UTF-8')
+  return(dados)
+}
+
+speed_datings = ler_dados("../dados/speed-dating.csv")
+
+
+df = speed_datings %>% mutate(diferenca_idade = abs(age_o - age))
+
+
+```
+
+```{r echo=FALSE, message=F, warning=F}
+
+ggplot(df, aes(x = attr, y = like)) + 
+  geom_point(alpha = 0.4)
+
+ggplot(speed_datings, aes(x = fun, y = like)) + 
+  geom_point(position = position_jitter()) + geom_smooth(method = "lm", se = FALSE)
+
+
+ggpairs(select(speed_datings, like, attr, intel, fun, age))
+
+```
+
