@@ -1,0 +1,205 @@
+---
+title: "Encontros relâmpagos"
+date: "6 de outubro de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+theme_set(theme_bw())
+library(GGally)
+library(ggfortify)
+library(broom)
+require(ISLR)
+library(dplyr)
+library(tidyr)
+```
+
+# Os dados
+
+Os dados descrevem 5000 encontros relâmpagos envolvendo jovens americanos. Cada observação possui informações a respeito do que uma pessoa achou da outra sob vários aspectos (por exemplo o quão a outra pessoa era atraente, o quão a outra pessoa era inteligente, o quão era ambiciosa, tudo isso sob a ótica da pessoa que avaliou, dando notas de 0 a 10 para cada quesito). No fim, a pessoa faz uma avaliação geral sobre com quem se encontrou.
+
+```{r}
+
+ler_dados <- function(arquivo){
+  require("dplyr", warn.conflicts = FALSE)
+  
+  dados = read.csv(arquivo, stringsAsFactors = FALSE, encoding='UTF-8')
+  return(dados)
+}
+
+speed_datings = ler_dados("../dados/speed-dating.csv")
+
+datings = speed_datings %>% select(2, 5, 30, 32, 33, 35, 36, 37)
+
+```
+
+## Entre os atributos aparência e inteligência, qual explica melhor a nota recebida por uma pessoa?
+
+É algo até lógico que quanto mais inteligente e atraente uma pessoa acha a outra, maior deve ser a avaliação da mesma. Mas qual a que exerce maior influência sobre o like?
+
+Abaixo temos o gráfico de dispersão relacionando os dois atributos citados e o like, separadamente. Conforme imaginado, vemos certa linearidade entre as variáveis.
+
+
+```{r warning=FALSE}
+ggplot(datings, aes(x = attr, y = like)) + 
+  geom_point(alpha = 0.7, position = position_jitter()) + 
+  xlab("O quão achou a outra pessoa atraente") +
+  ylab("Like")
+
+
+ggplot(datings, aes(x = intel, y = like)) + 
+  geom_point(alpha = 0.7, position = position_jitter()) + 
+  xlab("O quão achou a outra pessoa inteligente") +
+  ylab("Like")
+
+
+```
+
+
+#MRLS para relacionar o quão uma pessoa acha a outra atraente e like
+
+Podemos ver que o quão uma pessoa acha a outra atraente exerce uma influência significativa, já que o modelo possui um p-value muito pequeno e o coeficiente estimado possui um intervalo de confiança que não contém o 0, estando entre 0.61 e 0.65. Levando em conta os valores estimados, a reta ajustada seria:
+
+like = 0.63*attr + 2.18
+
+Em outras palavras, a cada ponto aumentado no quão uma pessoa acha a outra atraente, a avaliação (like) aumentaria em 0.63.
+
+O R² observado indica que a nossa variável explicativa explica 45% das variabilidade total da nossa variável dependente (like).
+
+Analisando os resíduos, os gráficos parecem indicar que não há correlação entre os resíduos e os valores ajustados, e o gráfico Q-Q mostra vários pontos passando pela reta traçada. Quanto mais pontos passando pela reta (ou próximos), maior a normalidade dos erros (resíduos), indicando um bom ajuste dos dados ao modelo.
+
+```{r warning=FALSE}
+lm_attr_like <- lm(like ~ attr, data = datings)
+tidy(lm_attr_like, conf.int = TRUE)
+glance(lm_attr_like)
+
+ggplot(datings, aes(x = attr, y = like)) + 
+  geom_point(alpha = 0.4, position = position_jitter()) +
+  geom_line(aes(y = predict(lm_attr_like, datings)), colour = "red") +
+  xlab("O quão achou a outra pessoa atraente") +
+  ylab("Like") +
+  ggtitle("Reta ajustada do modelo")
+
+
+autoplot(lm_attr_like)
+
+
+```
+
+#MRLS para relacionar inteligência e like
+
+Podemos ver que a inteligência da pessoa exerce uma influência significativa, já que o modelo possui um p-value muito pequeno e o coeficiente estimado possui um intervalo de confiança que não contém o 0, estando entre 0.56 e 0.62. Levando em conta os valores estimados, a reta ajustada seria:
+
+like = 0.59*attr + 1.73
+
+Em outras palavras, a cada ponto aumentado no quão uma pessoa acha a outra inteligente, a avaliação (like) aumentaria em 0.59.
+
+O R² observado indica que a nossa variável explicativa atratividade explica 25% das variabilidade total da nossa variável dependente (like), um valor considerado baixo.
+
+Analisando os resíduos, os gráficos parecem indicar que não há correlação entre os resíduos e os valores ajustados, e o gráfico Q-Q mostra vários pontos passando pela reta traçada, mais até do que na análise anterior. 
+
+```{r warning=FALSE}
+lm_intel_like <- lm(like ~ intel, data = datings)
+tidy(lm_intel_like, conf.int = TRUE)
+glance(lm_intel_like)
+
+ggplot(datings, aes(x = intel, y = like)) + 
+  geom_point(alpha = 0.4, position = position_jitter()) +
+  geom_line(aes(y = predict(lm_intel_like, datings)), colour = "red") +
+  xlab("O quão achou a outra pessoa inteligente") +
+  ylab("Like") +
+  ggtitle("Reta ajustada do modelo")
+
+
+autoplot(lm_intel_like)
+
+```
+
+Apesar de os resultados dos modelos nos levarem a um indicativo que a o quão uma pessoa acha a outra atraente influencia mais na nota atribuída do que a inteligência, não podemos garantir isso com tanta precisão, já que os intervalos de confiança gerados para os coeficientes lineares se interceptam. Por outro lado, olhando para o R², temos que a atratividade explica 45% da variabilidade do like, enquanto que a inteligência apenas 25%.
+
+Fazendo uma regressão linear múltipla com as duas variáveis para verificar o quão as duas juntas explicam a nota, obtemos um R² de 52%, um valor considerado até baixo. Esperava-se que esses dois fatores juntos explicassem bastante a nota, mas isso não ocorre. Talvez se adicionássemos outros atributos como sinceridade, por exemplo, nessa análise, esse valor pudesse aumentar.
+
+```{r warning=FALSE}
+mrlm_like <- lm(like ~ intel + attr, data = datings)
+tidy(mrlm_like, conf.int = TRUE)
+glance(mrlm_like)
+
+```
+
+
+## Em qual gênero o like é mais afetado pelo quão uma pessoa acha a outra ambiciosa?
+
+O gráfico de dispersão abaixo mostra um comportamento dos dados parecido com o que vimos na análise da primeira pergunta. Uma variável explicativa (Aqui, o quão a pessoa que avalia achou a outra ambiciosa) exercendo influência sobre o a nota geral atribuída (like). O objetivo agora é ver o comportamento dessa regressão considerando as avaliações feitas por homens e mulheres de maneira separada. Há muita diferença? Quem se sente mais atraído por outra pessoa devido à uma grande ambição da mesma, os homens ou as mulheres?
+
+```{r warning=FALSE}
+
+ggplot(speed_datings, aes(x = amb, y = like)) + 
+  geom_point(alpha = 0.7, position = position_jitter()) + 
+  xlab("O quão achou a outra pessoa ambiciosa") +
+  ylab("Like")
+
+```
+
+# Gênero masculino
+
+Podemos ver que a ambiciosidade da mulher exerce uma influência significativa para os homens, já que o modelo possui um p-value muito pequeno e o coeficiente estimado possui um intervalo de confiança que não contém o 0, estando entre 0.39 e 0.46. Levando em conta os valores estimados, a reta ajustada seria:
+
+like = 0.42*amb + 3.37
+
+O R² observado indica que a nossa variável explicativa ambição explica apenas 18.4% da variabilidade total da nossa variável dependente (like), um valor considerado baixo.
+
+Analisando os resíduos, os gráficos parecem indicar que não há correlação entre os resíduos e os valores ajustados, e o gráfico Q-Q mostra vários pontos passando pela reta traçada, indicando certa normalidade nos erros, o que é um bom indicativo para o modelo.
+
+```{r warning=FALSE}
+amostra_homens <- speed_datings %>% filter (gender == 1)
+
+lm_men <- lm(like ~ amb, data = amostra_homens)
+tidy(lm_men, conf.int = TRUE)
+glance(lm_men)
+
+ggplot(amostra_homens, aes(x = amb, y = like)) + 
+  geom_point(alpha = 0.4, position = position_jitter()) +
+  geom_line(aes(y = predict(lm_men, amostra_homens)), colour = "red") +
+  xlab("O quão achou a outra pessoa ambiciosa") +
+  ylab("Like") +
+  ggtitle("Reta ajustada do modelo (Apenas homens)")
+
+
+autoplot(lm_men)
+
+```
+
+# Gênero feminino
+
+O resultados foram muito semelhantes aos dos homens e as conclusões feitas anteriormente se aplicam. Agora, o coeficiente linear estimado é 0.43, mas com um intervalo de confiança muito parecido ao encontrado anteriormente.
+
+O R² observado indica que a variável explica 17.9% da variabilidade total da nossa variável dependente, algo bem parecido com o já encontrado antes.
+
+Para os resíduos, também temos algo bem parecido.
+
+```{r warning=FALSE}
+amostra_mulheres <- speed_datings %>% filter (gender == 0)
+
+lm_woman <- lm(like ~ amb, data = amostra_mulheres)
+tidy(lm_woman, conf.int = TRUE)
+glance(lm_woman)
+
+ggplot(amostra_mulheres, aes(x = amb, y = like)) + 
+  geom_point(alpha = 0.4, position = position_jitter()) +
+  geom_line(aes(y = predict(lm_woman, amostra_mulheres)), colour = "red") +
+  xlab("O quão achou a outra pessoa ambiciosa") +
+  ylab("Like") + 
+  ggtitle("Reta ajustada do modelo (Apenas mulheres)")
+
+
+autoplot(lm_woman)
+
+```
+
+
+Assim, conclui-se que o gênero não é um fator determinante para essa análise. No geral, quanto mais ambiciosa uma pessoa acha a outra, maior deve ser a nota geral atribuída por ela, mas independentemente do gênero.
+
+
+

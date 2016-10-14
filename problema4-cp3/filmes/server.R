@@ -102,7 +102,7 @@ shinyServer(function(input, output) {
         scale_y_continuous(limits = c(2.6,3.8))
         
       
-    } else {
+    } else if (input$escolha == "Gênero (Popularidade)"){
       if (input$genero == "Todos"){
         selecionados_popularity = movies
       } else {
@@ -120,8 +120,42 @@ shinyServer(function(input, output) {
       df3 %>% 
         ggplot(aes(x = title, ymin = X2.5., ymax = X97.5.)) + 
         geom_errorbar(width = .2) + xlab(input$genero) + 
-        ggtitle("Intervalo de confiança para a popularidade dos filmes de determinado gênero.")+
+        ggtitle("Intervalo de confiança para mediana da popularidade dos filmes de determinado gênero.")+
         ylab("Mediana da popularidade")+ scale_y_continuous(limits = c(200, 1400))
+      
+      
+    } else {
+      filtrado1 = movies_genres %>% filter (genre == input$genero_comp1)
+      filtrado1 = filtrado1 %>% filter(ano >= input$range_comp1[1] & ano <= input$range_comp1[2])
+      
+      filtrado2 = movies_genres %>% filter (genre == input$genero_comp2)
+      filtrado2 = filtrado2 %>% filter(ano >= input$range_comp2[1] & ano <= input$range_comp2[2])
+      
+      escala = c(2.75, 4)
+      
+      if ((nrow(filtrado1) == 0 || nrow(filtrado1) == 1) && (nrow(filtrado2) == 1 || nrow(filtrado2) == 0)){
+        validate("Impossível fazer comparação. Não existem filmes dentro dos critérios selecionados.")
+      }
+      
+      b1 = bootstrap(filtrado1, mean(rating), R = 100)
+      mean.filme1 = CI.bca(b1, probs = c(.025, .975))
+      
+      b2 = bootstrap(filtrado2, mean(rating), R = 100)
+      mean.filme2 = CI.bca(b2, probs = c(.025, .975))
+      
+      
+      
+      df_comp = data.frame(rbind(mean.filme1, mean.filme2))
+      
+      df_comp$title = row.names(df_comp)
+      
+      df_comp[1,3] = paste(input$genero_comp1, "-", input$range_comp1[1], "a", input$range_comp1[2])
+      df_comp[2,3] = paste(input$genero_comp2, "-", input$range_comp2[1], "a", input$range_comp2[2])
+      
+      df_comp %>% 
+        ggplot(aes(x = title, ymin = X2.5., ymax = X97.5.)) + 
+        geom_errorbar(width = .2) + xlab("Gênero") + ylab("Intervalo de confiança para Rating médio (95% de confiança)") +
+        scale_y_continuous(limits = c(2.75, 4.2))
       
       
     }

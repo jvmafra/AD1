@@ -1,0 +1,9 @@
+name: filmes-analytics
+account: jvmafra
+server: shinyapps.io
+appId: 126566
+bundleId: 561992
+url: https://jvmafra.shinyapps.io/filmes-analytics/
+when: 1474318019.16437
+asMultiple: FALSE
+asStatic: FALSE

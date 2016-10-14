@@ -1,19 +1,25 @@
 ---
 title: "Encontros relâmpagos"
-author: "João Victor Barroso Mafra"
-date: "4 de outubro de 2016"
+author: "João Victor Mafra, Jobson Lucas e Gileade Kelvin"
+date: "12 de outubro de 2016"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, echo = FALSE ,message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(GGally)
 library(dplyr)
+library(broom)
 theme_set(theme_bw())
 ```
 
-```{r echo=FALSE, message=F, warning=F}
+#OS DADOS
+
+Dados amostrais de 20 encontros relâmpagos. Uma pessoa avalia a pessoa com a qual se encontrou sob diferentes aspectos (fornecendo notas de 0 a 10) e no fim, atribui uma nota a ela no geral de 0 a 10. Sobre esses aspectos, focaremos no quão a pessoa achou a outra atraente e o quão a pessoa achou a outra divertida, como o objetivo de verificar se essa duas variáveis podem explicar uma variável dependente, que nesse caso é a nota geral.
+
+
+```{r echo=FALSE}
 
 ler_dados <- function(arquivo){
   require("dplyr", warn.conflicts = FALSE)
@@ -22,24 +28,185 @@ ler_dados <- function(arquivo){
   return(dados)
 }
 
-speed_datings = ler_dados("../dados/speed-dating.csv")
+amostra = ler_dados("amostra.csv")
+amostra = amostra %>% select(2,3,4)
+names(amostra) <- c("Atraente","Divertido", "Nota")
+```
 
-
-df = speed_datings %>% mutate(diferenca_idade = abs(age_o - age))
-
+```{r}
+amostra
 
 ```
 
-```{r echo=FALSE, message=F, warning=F}
+# GRÁFICO DE DISPERSÃO ENTRE X1 (Avaliação para beleza da pessoa) e Y (Nota final)
 
-ggplot(df, aes(x = attr, y = like)) + 
-  geom_point(alpha = 0.4)
+Abaixo temos o gráfico de dispersão entre as duas variáveis, o coeficiente de correlação
+linear entre elas e o teste de hipótese para essa correlação. A região crítica está entre 0.48 e 0.90, que contém a correlação observada (0.76), logo a hipótese nula é rejeitada em favor da alternativa, indicando que a correlação é diferente de 0. Também podemos verificar isso usando p-valor, que é muito pequeno.
 
-ggplot(speed_datings, aes(x = fun, y = like)) + 
-  geom_point(position = position_jitter()) + geom_smooth(method = "lm", se = FALSE)
+```{r}
 
+ggplot(amostra, aes(x = Atraente, y = Nota)) + 
+  geom_point(alpha = 0.7)
 
-ggpairs(select(speed_datings, like, attr, intel, fun, age))
+cor(amostra$Atraente, amostra$Nota)
+cor.test(amostra$Atraente, amostra$Nota)
 
 ```
+
+# GRÁFICO DE DISPERSÃO ENTRE X2 (Avaliação para o quão a pessoa é divertida) e Y (Nota final)
+
+Abaixo temos o gráfico de dispersão entre as duas variáveis, o coeficiente de correlação
+linear entre elas e o teste de hipótese para essa correlação. A região crítica está entre 0.47 e 0.90, que contém a correlação observada (0.75), logo a hipótese nula é rejeitada em favor da alternativa, indicando que a correlação é diferente de 0. Também podemos verificar isso usando p-valor, que é muito pequeno.
+
+```{r}
+
+ggplot(amostra, aes(x = Divertido, y = Nota)) + 
+  geom_point(alpha = 0.7)
+
+cor(amostra$Divertido, amostra$Nota)
+cor.test(amostra$Divertido, amostra$Nota)
+```
+
+
+Como pudemos ver, em ambos os casos temos um forte suspeita de relação linear entre as variáveis
+
+
+#REGRESSÃO LINEAR MÚLTIPLA
+
+A seguir, a matriz das notas gerais(Y).
+```{r}
+y = matrix(c(8,6.5,7,6,4 ,6 ,7, 6, 8, 3, 2, 6, 8, 5 ,5 ,8, 8 ,5, 5, 3))
+y
+```
+
+Aqui temos a matriz das notas para o quão a pessoa é atraente(X1) e das notas para o quão a pessoa é divertida(X2) resultando na matriz X.
+```{r}
+X = matrix(c(1, 8, 7, 1, 5, 7 ,1, 6, 5, 1, 6, 4, 1, 5, 4, 1, 6, 5, 1, 7, 8 ,1, 6, 7, 1, 5, 8, 1, 4, 5, 1, 4, 4, 1, 6, 5, 1, 8, 8, 1, 3, 5, 1, 3, 5, 1, 8, 6, 1 ,6, 7 ,1, 4, 6, 1, 5, 4, 1, 3, 3),20,3,byrow=T)
+X
+```
+
+Adiante, temos a matriz transposta da matriz anterior X.
+```{r}
+Xt = t(X)
+Xt
+```
+
+Já aqui temos a matriz transposta acima multiplicada pela matriz original X.
+```{r}
+XtX = Xt %*% X
+XtX
+```
+
+Temos também a matriz inversa do produto acima.
+```{r}
+InvXtX = solve(XtX)
+InvXtX
+```
+
+Temos ainda o produto da matriz transposta X pela matriz das notas Y.
+```{r}
+Xty = Xt %*% y
+Xty
+```
+
+Por conseguinte, obtemos o estimador Beta através do produto da matriz inversa encontrada anteriormente por Xty(transposta de X multiplicada por Y). O b0 estimado é -0.48, o b1 0.56 e o b2 0.57.
+
+```{r}
+Beta.est = InvXtX %*% Xty
+Beta.est
+```
+
+Ademais, iremos obter os valores estimados de y.
+```{r}
+y.est = X%*%Beta.est
+y.est
+```
+
+Aqui obteremos a Soma de Quadrados de Regressão(SQreg).
+```{r}
+mean_y = mean(y)
+length_y = nrow(y)
+GL_reg = 2
+GL_res = length_y - GL_reg - 1
+GL_tot = length_y - 1
+
+Beta_t_Xty = t(Beta.est) %*% Xty
+Beta_t_Xty_elem = Beta_t_Xty[1,1]
+SQreg = Beta_t_Xty_elem - length_y*(mean_y)^2
+SQreg
+
+```
+
+Além disso, obtemos Soma de Quadrados de Resíduos(SQres).
+```{r}
+yty = t(y)%*%y
+yty_elem = yty[1,1]
+SQres = yty_elem - Beta_t_Xty_elem
+SQres
+```
+
+Por fim, no quesito Soma de Quadrados, temos Soma de Quadrados Total(SQtot).
+```{r}
+SQtot = yty_elem - length_y*(mean_y)^2
+SQtot
+```
+
+Posteriormente, temos o Quadrado Médio das Regressões(QMreg).
+```{r}
+QMreg = SQreg / GL_reg
+QMreg
+```
+
+Além do mais, temos o Quadrado Médio dos Resíduos(QMres).
+```{r}
+QMres = SQres / GL_res
+QMres
+```
+
+Temos também o R².
+```{r}
+R2 = SQreg / SQtot
+R2
+```
+
+Finalmente, temos a estatística de teste(F0).
+```{r}
+F0 = QMreg / QMres
+F0
+```
+
+#Análise:
+B1 tem o valor estimado de 0.56 e B2 tem o valor estimado de 0.57. A reta ajustada seria:
+y = 0.56x1 + 0.57x2 - 0.48
+
+Também temos que os valores da Soma de Quadrados de Regressão(SQreg) é 47.15, Soma de Quadrados Total (SQtot) é 63.63 e Soma de Quadrados de Resíduos(SQres) 16.48. 
+
+Teste de Hipótese:
+- Ho: b1 = 0 e b2 = 0 (Nenhuma variável exerce influência sobre Y)
+
+- H1: b1 != 0 ou b2 != 0 (Existe pelo menos uma variável explicativa que exerce influência sobre Y)
+
+Para realizar o teste, usaremos a estatística F. O F0(estatística do teste) encontrado no modelo foi 24.32. Observando a tabela ANOVA ao nível de 5% de significância, com denominador 17 (N - k - 1) e numerador 2 (k = 2), temos o valor de 3.59. Como F0 > Ftabelado, rejeitamos a hipótese nula em favor da alternativa, ou seja, ao menos uma das variáveis exerce influência sobre Y.
+
+Além disso, o R² encontrado foi de 0.74, indicando que as duas variáveis juntas explicam 74% da variabilidade dos dados.
+
+Realizando abaixo testes marginais para verificar se as variáveis exercem influência sobre a variável dependente Y SEPARADAMENTE, obtemos um p-value alto em ambos os casos, nos levando a NÃO rejeição de H0, ou seja, independentemente nenhuma exerceria influência sobre a Nota.
+
+```{r}
+t.test(amostra$Atraente, amostra$Nota)
+t.test(amostra$Divertido, amostra$Nota)
+
+```
+
+Abaixo, encontramos os mesmos estimadores e coeficientes encontrados utilizando as operações com matrizes anteriormente, mas utilizando a função lm do próprio R para gerar o modelo.
+
+```{r}
+
+modelo3 <- lm(Nota ~ Atraente + Divertido, data = amostra)
+summary(modelo3)
+
+```
+
+
+Utilizando o modelo gerado, podemos prever, por exemplo, a nota geral recebida por uma pessoa, quando sua nota no quesito aparência é 9 e a nota no quesito divertido é 5, chegando em um Y (nota geral) = 7.4
 
