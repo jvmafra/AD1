@@ -1,0 +1,125 @@
+---
+title: "Speed Datings"
+date: "14 de outubro de 2016"
+output: html_document
+---
+
+
+```{r warning=FALSE, include=FALSE}
+library(ggplot2)
+theme_set(theme_bw())
+library(GGally)
+library(pscl)
+library(dplyr, warn.conflicts = FALSE)
+library(broom)
+```
+
+
+#OS DADOS
+
+Para essa análise, serão utilizados os seguintes atributos:
+
+- samerace -> Indica se as duas pessoas são da mesma raça
+- attr -> O quão a pessoa achou a outra atraente
+- sinc -> O quão a pessoa achou a outra sincera
+- intel -> O quão a pessoa achou a outra inteligente
+- fun -> O quão a pessoa achou a outra divertida
+- amb -> O quão a pessoa achou a outra ambiciosa
+- shar -> O quão a pessoa achou que os dois compartilham dos mesmos hobbies e interesses
+- dif_age -> A diferença de idade entre as duas pessoas
+
+O objetivo é verificar a influência desses atributos na variável categórica match, que diz se ambos disseram que gostariam de se encontrar novamente depois.
+
+
+```{r}
+ler_dados <- function(arquivo){
+  require("dplyr", warn.conflicts = FALSE)
+  
+  dados = read.csv(arquivo, stringsAsFactors = FALSE, encoding='UTF-8')
+  return(dados)
+}
+
+speed_datings = ler_dados("speed-dating2.csv")
+speed_datings = speed_datings %>% mutate(dif_age = abs(age_o - age))
+speed_datings = speed_datings %>% mutate(match = ifelse(dec == "yes", 1, 0))
+speed_datings = speed_datings %>% select(6,30,31,32,33,34,35,45,46)
+speed_datings$match <- as.factor(speed_datings$match)
+speed_datings$samerace <- as.factor(speed_datings$samerace)
+speed_datings <- na.omit(speed_datings)
+
+```
+
+
+#1. Que fatores nos dados têm efeito significativo na chance do casal ter um match? E como é esse efeito (positivo/negativo)?
+
+Abaixo, foi gerada uma regressão logística, que originou os seguintes coeficientes para cada atributo (com seus respectivos intervalos de confiança).
+
+<p>Os seguintes fatores têm efeito significativo</p>:
+
+- attr (Efeito positivo)
+- sinc (Efeito negativo)
+- fun (Efeito postivo)
+- amb (Efeito negativo)
+- shar (Efeito positivo)
+
+Os outros fatores (samerace, intel e dif_age) contém o 0 em seus intervalos de confiança, indicando que não são considerados significativos. Ou seja, para esse modelo, o fato de os dois terem a mesma raça ou não, a inteligência da outra pessoa e a diferença de idade entre elas não influencia no match.
+
+```{r}
+
+model <- glm(match ~ ., 
+          data = speed_datings, 
+          family = "binomial")
+
+tidy(model, conf.int = TRUE)
+
+confint(model)
+
+```
+
+Para dar um maior sentido aos coeficientes encontrados, podemos exponenciá-los, obtendo agora:
+
+```{r}
+
+tidy(model, conf.int = TRUE, exponentiate = TRUE)
+
+```
+
+#2. Que fatores nos dados têm mais efeito na chance de um casal ter match?
+
+O que apresenta um maior coeficiente estimado (0.56) é o attr, ou seja, a aparência da outra pessoa. Além dele, temos o shar (0.32), indicando o quão a pessoa achou que os dois compartilham dos mesmos hobbies e interesses, e o fun (0.25), que indica o quão a pessoa achou a outra divertida.
+
+
+O pseudo R² encontrado foi de 0.30. O valor desse pseudo R², em geral, é menor que o valor do R² normal que calcula-se na regressão linear. Um valor entre 0.20 e 0.40 já indica uma boa explicação da variabilidade dos dados.
+
+```{r}
+pR2(model)
+
+```
+
+
+# O modelo gerado prevê bem a variável match?
+
+Para analisar isso, foi feita uma comparação entre o que o modelo estimaria tendo os dados em mãos e o que de fato temos nos dados.
+
+Na maioria dos casos ele prevê que houve match quando realmente houve, assim como na maioria na vezes que prevê que não aconteceu match, realmente não aconteceu.
+
+```{r}
+predictions <- predict(model, type = "response") > .5
+true_match <- speed_datings$match == 1
+
+table(predictions, true_match)
+require(vcd)
+mosaic(table(predictions, true_match))
+```
+
+Sendo mais prático, abaixo temos a precisão do modelo, que mostra que ele acertou a previsão em aproximadamente 75% das observações.
+
+```{r}
+erro <- sum((predictions != true_match)) / NROW(predictions)
+accuraccy = 1 - erro
+accuraccy
+
+```
+
+
+

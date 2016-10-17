@@ -23,8 +23,6 @@ titanic$pclass <- as.factor(titanic$pclass)
 titanic$survived <- as.factor(titanic$survived)
 titanic <- na.omit(titanic)
 
-ggpairs(titanic)
-
 # Parece haver uma relação entre fare e survived
 ggplot(titanic, aes(x = survived, y = fare)) + 
   geom_violin(fill = "lightblue") + 
